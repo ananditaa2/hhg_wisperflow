@@ -1,17 +1,19 @@
 :root {
-  --bg-page: #faf8f0;
+  --bg-page: #faf7ee;
   --bg-card: #ffffff;
-  --bg-card-subtle: #f5f2e8;
   --bg-banner: #093c31;
-  --accent-forest: #093c31;
-  --accent-lilac: #ecdffc;
-  --accent-lilac-hover: #e2ccfc;
-  --border-dark: #18181b;
-  --border-light: rgba(0, 0, 0, 0.08);
-  --border-card: #eae6db;
-  --text-primary: #121417;
-  --text-secondary: #525866;
-  --text-muted: #868c98;
+  --border-black: #18181b;
+  --shadow-brutal: 4px 4px 0px #18181b;
+  --shadow-brutal-hover: 6px 6px 0px #18181b;
+  --shadow-brutal-active: 1px 1px 0px #18181b;
+  --accent-lilac: #d8b4fe;
+  --accent-lilac-soft: #f3e8ff;
+  --accent-matcha: #86efac;
+  --accent-yellow: #fef08a;
+  --accent-peach: #fecdd3;
+  --accent-cyan: #a5f3fc;
+  --text-main: #18181b;
+  --text-muted: #64748b;
   --font-serif: 'Newsreader', Georgia, serif;
   --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -25,137 +27,180 @@
 
 body {
   background-color: var(--bg-page);
-  color: var(--text-primary);
+  color: var(--text-main);
   font-family: var(--font-sans);
   min-height: 100vh;
+  width: 100%;
   overflow-x: hidden;
   line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
+  background-image: radial-gradient(#d1cbbe 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
-/* Custom Scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--bg-page);
-}
-::-webkit-scrollbar-thumb {
-  background: #d8d4c7;
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-forest);
+/* Fluid Full-Width Container */
+.full-screen-container {
+  width: 100%;
+  max-width: 1680px;
+  margin: 0 auto;
+  padding: 24px 32px;
 }
 
-/* Card Containers */
-.wispr-card {
+@media (max-width: 768px) {
+  .full-screen-container {
+    padding: 16px;
+  }
+}
+
+/* Gen Z Neo-Brutalist Tactile Cards */
+.genz-card {
   background: var(--bg-card);
-  border: 1px solid var(--border-light);
+  border: 2.5px solid var(--border-black);
   border-radius: 16px;
-  box-shadow: 0 2px 12px -2px rgba(0, 0, 0, 0.04);
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: var(--shadow-brutal);
+  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.wispr-card:hover {
-  border-color: rgba(0, 0, 0, 0.15);
-  box-shadow: 0 6px 24px -4px rgba(0, 0, 0, 0.06);
+.genz-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: var(--shadow-brutal-hover);
 }
 
-/* Signature Wispr Lilac Button with crisp black border */
-.btn-wispr-lilac {
+/* Neo-Brutalist Buttons */
+.btn-brutal-lilac {
   background-color: var(--accent-lilac);
-  color: #111827;
-  border: 1.5px solid var(--border-dark);
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 600;
-  font-size: 0.88rem;
+  color: var(--text-main);
+  border: 2px solid var(--border-black);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.92rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: all 0.15s ease;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+  box-shadow: 3px 3px 0px var(--border-black);
+  transition: all 0.1s ease;
 }
 
-.btn-wispr-lilac:hover {
-  background-color: var(--accent-lilac-hover);
-  transform: translateY(-1px);
+.btn-brutal-lilac:hover {
+  transform: translate(-1.5px, -1.5px);
+  box-shadow: 5px 5px 0px var(--border-black);
 }
 
-.btn-wispr-secondary {
+.btn-brutal-lilac:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px var(--border-black);
+}
+
+.btn-brutal-white {
   background-color: #ffffff;
-  color: var(--text-primary);
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  padding: 8px 16px;
-  border-radius: 8px;
-  font-weight: 500;
-  font-size: 0.88rem;
+  color: var(--text-main);
+  border: 2px solid var(--border-black);
+  padding: 10px 18px;
+  border-radius: 10px;
+  font-weight: 600;
+  font-size: 0.92rem;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   gap: 8px;
+  box-shadow: 3px 3px 0px var(--border-black);
+  transition: all 0.1s ease;
+}
+
+.btn-brutal-white:hover {
+  transform: translate(-1.5px, -1.5px);
+  box-shadow: 5px 5px 0px var(--border-black);
+  background-color: #f8fafc;
+}
+
+.btn-brutal-white:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px var(--border-black);
+}
+
+/* Playful Gen-Z Pill Tags */
+.genz-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1.5px solid var(--border-black);
+  box-shadow: 2px 2px 0px var(--border-black);
+}
+
+.tag-yellow { background-color: var(--accent-yellow); color: #000; }
+.tag-green { background-color: var(--accent-matcha); color: #000; }
+.tag-lilac { background-color: var(--accent-lilac); color: #000; }
+.tag-peach { background-color: var(--accent-peach); color: #000; }
+.tag-cyan { background-color: var(--accent-cyan); color: #000; }
+
+/* Marquee Banner */
+.marquee-container {
+  overflow: hidden;
+  white-space: nowrap;
+  background-color: var(--bg-banner);
+  color: #ffffff;
+  padding: 8px 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border-bottom: 2px solid var(--border-black);
+}
+
+.marquee-content {
+  display: inline-block;
+  animation: marquee 25s linear infinite;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Floating Wispr Widget */
+.floating-wispr-capsule {
+  position: fixed;
+  bottom: 28px;
+  left: 28px;
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--accent-lilac);
+  border: 2.5px solid var(--border-black);
+  box-shadow: 4px 4px 0px var(--border-black);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 99;
   transition: all 0.15s ease;
 }
 
-.btn-wispr-secondary:hover {
-  background-color: #f5f3eb;
-  border-color: rgba(0, 0, 0, 0.2);
+.floating-wispr-capsule:hover {
+  transform: translate(-2px, -2px) scale(1.05);
+  box-shadow: 6px 6px 0px var(--border-black);
+}
+
+.floating-wispr-capsule:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px var(--border-black);
 }
 
 /* Typography styles */
 .serif-headline {
   font-family: var(--font-serif);
-  font-weight: 500;
-  letter-spacing: -0.025em;
-  color: #121417;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text-main);
 }
 
 .serif-italic {
   font-style: italic;
   font-weight: 400;
-}
-
-.eyebrow-text {
-  font-family: var(--font-sans);
-  font-size: 0.75rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-}
-
-/* Floating Capsule Widget (bottom left) */
-.floating-wispr-capsule {
-  position: fixed;
-  bottom: 24px;
-  left: 24px;
-  width: 52px;
-  height: 52px;
-  border-radius: 50%;
-  background: var(--accent-lilac);
-  border: 1.5px solid var(--border-dark);
-  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.15);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  z-index: 90;
-  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.floating-wispr-capsule:hover {
-  transform: scale(1.08);
-}
-
-.mono-tag {
-  font-family: var(--font-mono);
-  font-size: 0.75rem;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: #f1ede1;
-  color: #374151;
-  border: 1px solid rgba(0, 0, 0, 0.06);
 }

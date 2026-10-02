@@ -49,7 +49,7 @@ export function App() {
       />
 
       {/* Main Content Area */}
-      <main style={{ flex: 1, maxWidth: '1400px', width: '100%', margin: '0 auto', padding: '24px 20px' }}>
+      <main className="full-screen-container" style={{ flex: 1 }}>
         {activeTab === 'cockpit' && (
           <DevCockpit
             isListening={isActive}
@@ -109,36 +109,44 @@ export function App() {
 
       {/* Footer */}
       <footer style={{
-        borderTop: '1px solid #eae6db',
-        backgroundColor: '#f5f2e8',
-        padding: '24px 20px',
+        borderTop: '2.5px solid var(--border-black)',
+        backgroundColor: '#ffffff',
+        padding: '24px 32px',
         marginTop: '60px'
       }}>
         <div style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
+          width: '100%',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
           flexWrap: 'wrap',
-          gap: '12px',
-          fontSize: '0.85rem',
-          color: 'var(--text-secondary)'
+          gap: '16px',
+          fontSize: '0.88rem',
+          color: 'var(--text-main)',
+          fontWeight: 600
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span>Built 100% using voice with</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <span className="genz-tag" style={{ backgroundColor: 'var(--accent-matcha)' }}>100% VOICE CODED</span>
+            <span>Crafted hands-free using</span>
             <a
               href="https://ref.wisprflow.ai/hhg"
               target="_blank"
               rel="noreferrer"
-              style={{ color: '#093c31', textDecoration: 'none', fontWeight: 700 }}
+              style={{
+                color: 'var(--text-main)',
+                textDecoration: 'none',
+                fontWeight: 800,
+                borderBottom: '2px solid var(--border-black)',
+                paddingBottom: '1px'
+              }}
             >
-              Wispr Flow (ref.wisprflow.ai/hhg)
+              Wispr Flow (ref.wisprflow.ai/hhg) ↗
             </a>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <span>Engineered for the Wispr Goa Hacker House 🌴</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="genz-tag" style={{ backgroundColor: 'var(--accent-peach)' }}>GOA HACKER HOUSE 🌴</span>
+            <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Candidate Submission Task</span>
           </div>
         </div>
       </footer>

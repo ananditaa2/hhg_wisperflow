@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Activity, Zap, Keyboard, Clock, Mic, Sparkles, Copy, Check, ArrowRight, Wand2, Volume2 } from 'lucide-react';
+import { Activity, Zap, Keyboard, Clock, Mic, Sparkles, Copy, Check, ArrowRight, Wand2, Volume2, Flame } from 'lucide-react';
 import { TelemetryData } from '../types';
 
 interface DevCockpitProps {
@@ -22,13 +22,13 @@ interface NormalizationSample {
 const NORMALIZATION_SAMPLES: NormalizationSample[] = [
   {
     raw: "uh make a function that takes an array of numbers and like removes duplicates and sorts it ascending",
-    normalized: "Create a typed utility function to deduplicate and sort numeric arrays in ascending order.",
+    normalized: "Create a typed utility function to deduplicate and sort numeric arrays in ascending order with O(n log n) efficiency.",
     code: "export function dedupeAndSort(items: number[]): number[] {\n  return Array.from(new Set(items)).sort((a, b) => a - b);\n}"
   },
   {
     raw: "we need an express middleware that checks the bearer token in headers and rejects with 401 if missing",
-    normalized: "Implement Express authentication middleware verifying JWT Bearer token with RFC 6750 401 response.",
-    code: "export const authMiddleware = (req, res, next) => {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) return res.status(401).json({ error: 'Unauthorized' });\n  next();\n};"
+    normalized: "Implement Express authentication middleware verifying JWT Bearer token with RFC 6750 401 response and claim extraction.",
+    code: "export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) return res.status(401).json({ error: 'Unauthorized' });\n  next();\n};"
   },
   {
     raw: "build a react hook that monitors window resize and returns the current viewport width and height debounce it",
@@ -50,7 +50,6 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [activeSample, setActiveSample] = useState<NormalizationSample>(NORMALIZATION_SAMPLES[0]);
   const [copiedCode, setCopiedCode] = useState<boolean>(false);
-  const [manualInput, setManualInput] = useState<string>('');
 
   // Audio Bars Visualizer Loop
   useEffect(() => {
@@ -66,7 +65,7 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
       ctx.clearRect(0, 0, width, height);
 
       const data = frequencyDataRef.current;
-      const totalBars = 36;
+      const totalBars = 48;
       const barWidth = 6;
       const gap = (width - totalBars * barWidth) / (totalBars + 1);
 
@@ -78,11 +77,7 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
         const x = gap + i * (barWidth + gap);
         const y = (height - normalized) / 2;
 
-        const grad = ctx.createLinearGradient(0, y, 0, y + normalized);
-        grad.addColorStop(0, '#093c31');
-        grad.addColorStop(1, '#111827');
-
-        ctx.fillStyle = isListening ? grad : '#cbd5e1';
+        ctx.fillStyle = isListening ? '#18181b' : '#cbd5e1';
         ctx.beginPath();
         ctx.roundRect(x, y, barWidth, normalized, 3);
         ctx.fill();
@@ -109,228 +104,223 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-      {/* 1. Hero Section */}
-      <section style={{ textAlign: 'center', padding: '36px 16px 12px', maxWidth: '840px', margin: '0 auto' }}>
-        <div className="eyebrow-text" style={{ marginBottom: '14px' }}>
-          WISPR FLOW DEVELOPER TELEMETRY
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', width: '100%' }}>
+      {/* 1. Full-Width Expansive Hero */}
+      <section style={{ textAlign: 'center', padding: '24px 16px 8px', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          <span className="genz-tag tag-yellow">⚡ 100% SPEECH TO CODE</span>
+          <span className="genz-tag tag-lilac">3.8x FLOW VELOCITY</span>
+          <span className="genz-tag tag-green">ZERO KEYBOARD TAX</span>
         </div>
 
-        <h1 className="serif-headline" style={{ fontSize: 'clamp(2.8rem, 6vw, 4.4rem)', lineHeight: '1.08', marginBottom: '18px' }}>
+        <h1 className="serif-headline" style={{ fontSize: 'clamp(3rem, 6.5vw, 5.2rem)', lineHeight: '1.04', marginBottom: '16px' }}>
           Don&apos;t type,<br />
-          <span className="serif-italic">just code.</span>
+          <span className="serif-italic" style={{ color: '#093c31' }}>just code.</span>
         </h1>
 
-        <p style={{ fontSize: '1.15rem', color: 'var(--text-secondary)', maxWidth: '600px', margin: '0 auto 24px', lineHeight: '1.6' }}>
+        <p style={{ fontSize: '1.25rem', color: 'var(--text-muted)', maxWidth: '780px', margin: '0 auto 24px', lineHeight: '1.6' }}>
           Speak high-level architectural intent at 160+ WPM. Wispr turns messy, conversational developer thoughts into polished production prompts and code.
         </p>
 
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
           <button
             onClick={onStartMic}
-            className="btn-wispr-lilac"
+            className="btn-brutal-lilac"
             style={{
-              padding: '12px 24px',
-              fontSize: '1rem',
-              backgroundColor: isListening ? '#bbf7d0' : undefined
+              padding: '14px 28px',
+              fontSize: '1.05rem',
+              backgroundColor: isListening ? 'var(--accent-matcha)' : 'var(--accent-lilac)'
             }}
           >
-            <Mic size={18} />
-            <span>{isListening ? 'Microphone Active (Speaking...)' : 'Start Real Voice Input'}</span>
+            <Mic size={20} />
+            <span>{isListening ? '🎙️ Microphone Active (Speak Now)' : 'Launch Voice Telemetry'}</span>
           </button>
 
           <a
             href="https://ref.wisprflow.ai/hhg"
             target="_blank"
             rel="noreferrer"
-            className="btn-wispr-secondary"
-            style={{ padding: '12px 20px', fontSize: '0.95rem' }}
+            className="btn-brutal-white"
+            style={{ padding: '14px 24px', fontSize: '1.05rem' }}
           >
-            <span>Wispr Referral Link</span>
-            <ArrowRight size={15} />
+            <span>Wispr Referral Verification</span>
+            <ArrowRight size={16} />
           </a>
         </div>
       </section>
 
-      {/* 2. Real-Time Speech Stream Box (Shows actual words as you speak!) */}
-      <div className="wispr-card" style={{ padding: '24px', maxWidth: '900px', width: '100%', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '10px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{
-              width: '8px',
-              height: '8px',
-              borderRadius: '50%',
-              backgroundColor: isListening ? '#10b981' : '#9ca3af'
-            }} />
-            <span style={{ fontSize: '0.92rem', fontWeight: 700 }}>
-              Live Speech-to-Intent Stream ({isListening ? 'Listening via Web Speech API' : 'Microphone in Standby'})
-            </span>
-          </div>
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Volume2 size={15} color="#093c31" />
-            <span className="mono-tag">Mic: {volume}%</span>
-          </div>
-        </div>
-
-        {/* Live Transcript Display */}
-        <div style={{
-          backgroundColor: '#faf8f0',
-          borderRadius: '12px',
-          border: '1px solid #eae6db',
-          padding: '18px',
-          minHeight: '80px',
-          fontFamily: 'var(--font-sans)',
-          fontSize: '1.05rem',
-          lineHeight: '1.6',
-          color: '#111827'
-        }}>
-          {liveTranscript || interimTranscript ? (
-            <div>
-              <span>{liveTranscript}</span>{' '}
-              <span style={{ color: '#093c31', fontStyle: 'italic', fontWeight: 600 }}>{interimTranscript}</span>
-            </div>
-          ) : (
-            <span style={{ color: 'var(--text-muted)' }}>
-              {isListening 
-                ? '🎙️ Say something into your microphone (e.g. "Create a login component with validation")...' 
-                : 'Click "Start Real Voice Input" above or test a sample below to see speech-to-intent in action.'}
-            </span>
-          )}
-        </div>
-
-        {/* Soundwave canvas */}
-        <div style={{ marginTop: '14px' }}>
-          <canvas
-            ref={canvasRef}
-            width={760}
-            height={60}
-            style={{ width: '100%', height: '60px', display: 'block' }}
-          />
-        </div>
-      </div>
-
-      {/* 3. Metric Cards */}
+      {/* 2. Full-Width Bento Grid: Live Transcript + Stats Cards */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '16px',
-        maxWidth: '1100px',
-        margin: '0 auto',
+        gridTemplateColumns: 'minmax(0, 1.35fr) minmax(320px, 1fr)',
+        gap: '24px',
         width: '100%'
       }}>
-        {/* Metric 1 */}
-        <div className="wispr-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
-              FLOW MULTIPLIER
-            </span>
-            <Zap size={16} color="var(--accent-forest)" />
+        {/* Left Bento: Live Speech-to-Intent Stream Box */}
+        <div className="genz-card" style={{ padding: '28px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '380px' }}>
+          <div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="genz-tag tag-green">
+                  {isListening ? 'LIVE AUDIO ON' : 'STANDBY'}
+                </span>
+                <span style={{ fontSize: '1rem', fontWeight: 800 }}>
+                  Real-Time Speech-to-Intent Stream
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Volume2 size={16} />
+                <span className="genz-tag tag-cyan" style={{ fontSize: '0.72rem' }}>
+                  Mic: {volume}%
+                </span>
+              </div>
+            </div>
+
+            {/* Live Words Stream Display */}
+            <div style={{
+              backgroundColor: '#faf7ee',
+              borderRadius: '12px',
+              border: '2px solid var(--border-black)',
+              padding: '20px',
+              minHeight: '130px',
+              fontFamily: 'var(--font-sans)',
+              fontSize: '1.2rem',
+              lineHeight: '1.6',
+              color: '#18181b',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.04)'
+            }}>
+              {liveTranscript || interimTranscript ? (
+                <div>
+                  <span style={{ fontWeight: 600 }}>{liveTranscript}</span>{' '}
+                  <span style={{ color: '#093c31', fontStyle: 'italic', fontWeight: 800 }}>{interimTranscript}</span>
+                </div>
+              ) : (
+                <span style={{ color: '#94a3b8' }}>
+                  {isListening 
+                    ? '🎙️ Speak freely into your microphone (e.g. "Build an API route with JWT auth and rate limiting")...' 
+                    : 'Click "Launch Voice Telemetry" above or click a demo sample below to see speech-to-intent in action.'}
+                </span>
+              )}
+            </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '2.4rem', fontWeight: 800, color: '#111827' }}>
+
+          {/* Soundwave canvas */}
+          <div style={{ marginTop: '20px' }}>
+            <canvas
+              ref={canvasRef}
+              width={820}
+              height={55}
+              style={{ width: '100%', height: '55px', display: 'block' }}
+            />
+          </div>
+        </div>
+
+        {/* Right Bento: 4 Tactile Metric Cards Grid */}
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(2, 1fr)',
+          gap: '16px'
+        }}>
+          {/* Card 1 */}
+          <div className="genz-card" style={{ padding: '20px', backgroundColor: 'var(--accent-lilac)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                FLOW MULTIPLIER
+              </span>
+              <Zap size={16} />
+            </div>
+            <div style={{ fontSize: '2.8rem', fontWeight: 900, lineHeight: '1' }}>
               {telemetry.flowMultiplier.toFixed(1)}x
-            </span>
-            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#059669' }}>
-              vs 45 WPM Typing
-            </span>
+            </div>
+            <p style={{ fontSize: '0.8rem', fontWeight: 700, marginTop: '8px' }}>
+              ⚡ vs 45 WPM Keyboard Typing
+            </p>
           </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Peak burst speech rate vs manual keyboard
-          </p>
-        </div>
 
-        {/* Metric 2 */}
-        <div className="wispr-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
-              CURRENT VELOCITY
-            </span>
-            <Activity size={16} color="#0284c7" />
+          {/* Card 2 */}
+          <div className="genz-card" style={{ padding: '20px', backgroundColor: 'var(--accent-matcha)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                BURST WPM
+              </span>
+              <Activity size={16} />
+            </div>
+            <div style={{ fontSize: '2.8rem', fontWeight: 900, lineHeight: '1' }}>
+              {telemetry.currentWpm || (isListening ? 165 : 0)}
+            </div>
+            <p style={{ fontSize: '0.8rem', fontWeight: 700, marginTop: '8px' }}>
+              🚀 Words / Minute Speech Rate
+            </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '2.4rem', fontWeight: 800, color: '#111827' }}>
-              {telemetry.currentWpm || (isListening ? 155 : 0)}
-            </span>
-            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#0284c7' }}>
-              Words / Min
-            </span>
-          </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Spoken speech bandwidth rate
-          </p>
-        </div>
 
-        {/* Metric 3 */}
-        <div className="wispr-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
-              KEYSTROKES SPARED
-            </span>
-            <Keyboard size={16} color="#7c3aed" />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '2.4rem', fontWeight: 800, color: '#111827' }}>
+          {/* Card 3 */}
+          <div className="genz-card" style={{ padding: '20px', backgroundColor: 'var(--accent-cyan)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                KEYS SPARED
+              </span>
+              <Keyboard size={16} />
+            </div>
+            <div style={{ fontSize: '2.6rem', fontWeight: 900, lineHeight: '1' }}>
               {telemetry.keystrokesSaved.toLocaleString()}
-            </span>
-            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#7c3aed' }}>
-              Keys
-            </span>
+            </div>
+            <p style={{ fontSize: '0.8rem', fontWeight: 700, marginTop: '8px' }}>
+              🦾 Zero Wrist Strain / RSI
+            </p>
           </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Zero repetitive wrist strain
-          </p>
-        </div>
 
-        {/* Metric 4 */}
-        <div className="wispr-card" style={{ padding: '20px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
-            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
-              WORDS TRANSCRIBED
-            </span>
-            <Clock size={16} color="#d97706" />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '2.4rem', fontWeight: 800, color: '#111827' }}>
+          {/* Card 4 */}
+          <div className="genz-card" style={{ padding: '20px', backgroundColor: 'var(--accent-yellow)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                WORDS DICTATED
+              </span>
+              <Clock size={16} />
+            </div>
+            <div style={{ fontSize: '2.6rem', fontWeight: 900, lineHeight: '1' }}>
               {telemetry.wordsSpoken}
-            </span>
-            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#d97706' }}>
-              {telemetry.sessionDuration}s session
-            </span>
+            </div>
+            <p style={{ fontSize: '0.8rem', fontWeight: 700, marginTop: '8px' }}>
+              🕒 {telemetry.sessionDuration}s Active Session
+            </p>
           </div>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Wispr speech-to-intent engine
-          </p>
         </div>
       </div>
 
-      {/* 4. The Wispr Magic Normalizer: Messy Speech -> Polished Engineering Prompt & Code */}
-      <div className="wispr-card" style={{ padding: '28px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-          <Wand2 size={18} color="#093c31" />
-          <h3 className="serif-headline" style={{ fontSize: '1.5rem' }}>
-            The Wispr Magic Normalizer (Speech $\rightarrow$ Code Intent)
-          </h3>
+      {/* 3. The Wispr Magic Normalizer: Full-Width Comparison Lab */}
+      <div className="genz-card" style={{ padding: '32px', width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', marginBottom: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <Wand2 size={24} color="#093c31" />
+            <h3 className="serif-headline" style={{ fontSize: '2rem' }}>
+              The Wispr Magic Normalizer (Speech $\rightarrow$ Code Intent)
+            </h3>
+          </div>
+
+          <span className="genz-tag tag-lilac">
+            SECRET SAUCE
+          </span>
         </div>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '18px' }}>
-          The true power of Wispr Flow is converting fast, informal speech into crystal-clear engineering prompts and synthesized code:
+
+        <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginBottom: '20px' }}>
+          Wispr Flow&apos;s true differentiator: converting fast, rambling speech into crystal-clear engineering prompts and synthesized production code:
         </p>
 
-        {/* Sample selector tabs */}
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '20px' }}>
+        {/* Demo Selector Tabs */}
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '24px' }}>
           {NORMALIZATION_SAMPLES.map((sample, idx) => (
             <button
               key={idx}
               onClick={() => handleSelectSample(sample)}
-              className="btn-wispr-secondary"
+              className="btn-brutal-white"
               style={{
-                fontSize: '0.84rem',
-                backgroundColor: activeSample.raw === sample.raw ? 'var(--accent-lilac)' : undefined,
-                borderColor: activeSample.raw === sample.raw ? 'var(--border-dark)' : undefined,
-                fontWeight: activeSample.raw === sample.raw ? 600 : 500
+                fontSize: '0.86rem',
+                backgroundColor: activeSample.raw === sample.raw ? 'var(--accent-yellow)' : '#ffffff',
+                transform: activeSample.raw === sample.raw ? 'scale(1.02)' : 'none'
               }}
             >
-              Demo #{idx + 1}: {sample.normalized.slice(0, 28)}...
+              Demo #{idx + 1}: {sample.normalized.slice(0, 32)}...
             </button>
           ))}
         </div>
@@ -338,74 +328,76 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
         {/* Side-by-side comparison */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-          gap: '16px'
+          gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+          gap: '20px',
+          width: '100%'
         }}>
           {/* Left: Raw Spoken Input */}
           <div style={{
-            backgroundColor: '#faf8f0',
-            border: '1px solid #eae6db',
-            borderRadius: '12px',
-            padding: '18px',
+            backgroundColor: '#faf7ee',
+            border: '2px solid var(--border-black)',
+            boxShadow: '3px 3px 0px var(--border-black)',
+            borderRadius: '14px',
+            padding: '24px',
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between'
           }}>
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
-                <span>🎙️</span>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
+                <span style={{ fontSize: '1.2rem' }}>🎙️</span>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   Raw Conversational Speech (Spoken in 3 seconds)
                 </span>
               </div>
-              <p style={{ fontSize: '0.95rem', color: '#374151', fontStyle: 'italic', lineHeight: '1.5' }}>
+              <p style={{ fontSize: '1.15rem', color: '#18181b', fontStyle: 'italic', lineHeight: '1.6' }}>
                 &quot;{activeSample.raw}&quot;
               </p>
             </div>
-            <div style={{ marginTop: '16px', fontSize: '0.78rem', color: '#059669', fontWeight: 600 }}>
-              ✓ Spoken at ~165 WPM with zero typing fatigue
+            <div style={{ marginTop: '24px', fontSize: '0.85rem', color: '#093c31', fontWeight: 800 }}>
+              ✓ Spoken at ~165 WPM with zero keystroke fatigue
             </div>
           </div>
 
           {/* Right: Wispr Polished Prompt & Code Output */}
           <div style={{
             backgroundColor: '#ffffff',
-            border: '1.5px solid var(--border-dark)',
-            borderRadius: '12px',
-            padding: '18px',
+            border: '2px solid var(--border-black)',
+            boxShadow: '3px 3px 0px var(--border-black)',
+            borderRadius: '14px',
+            padding: '24px',
             display: 'flex',
             flexDirection: 'column',
-            gap: '12px',
-            boxShadow: '0 4px 12px rgba(0,0,0,0.04)'
+            gap: '14px'
           }}>
             <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#093c31', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#093c31', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   ✨ Wispr Normalized Engineering Intent
                 </span>
                 <button
                   onClick={() => handleCopyCode(activeSample.code)}
-                  className="btn-wispr-secondary"
-                  style={{ padding: '4px 8px', fontSize: '0.75rem' }}
+                  className="btn-brutal-white"
+                  style={{ padding: '6px 12px', fontSize: '0.78rem' }}
                 >
-                  {copiedCode ? <Check size={12} color="#059669" /> : <Copy size={12} />}
+                  {copiedCode ? <Check size={13} color="#059669" /> : <Copy size={13} />}
                   <span>{copiedCode ? 'Copied' : 'Copy Code'}</span>
                 </button>
               </div>
-              <p style={{ fontSize: '0.88rem', fontWeight: 600, color: '#111827', marginBottom: '10px' }}>
+              <p style={{ fontSize: '0.96rem', fontWeight: 700, color: '#18181b', lineHeight: '1.4' }}>
                 {activeSample.normalized}
               </p>
             </div>
 
             <pre style={{
-              backgroundColor: '#111827',
+              backgroundColor: '#18181b',
               color: '#a7f3d0',
-              padding: '12px',
-              borderRadius: '8px',
+              padding: '16px',
+              borderRadius: '10px',
               fontFamily: 'var(--font-mono)',
-              fontSize: '0.78rem',
+              fontSize: '0.84rem',
               overflowX: 'auto',
-              lineHeight: '1.4'
+              lineHeight: '1.5'
             }}>
               <code>{activeSample.code}</code>
             </pre>

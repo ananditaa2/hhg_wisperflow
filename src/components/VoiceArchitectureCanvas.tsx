@@ -180,27 +180,30 @@ export const VoiceArchitectureCanvas: React.FC<VoiceArchitectureCanvasProps> = (
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
       {/* Header */}
-      <div className="wispr-card" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      <div className="genz-card" style={{ padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div className="eyebrow-text" style={{ marginBottom: '8px' }}>
-            PILLAR 4: EXPERIMENT & ARCHITECTURE
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <span className="genz-tag" style={{ backgroundColor: 'var(--accent-matcha)' }}>PILLAR 4</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
+              DYNAMIC ARCHITECTURE CANVAS
+            </span>
           </div>
-          <h2 className="serif-headline" style={{ fontSize: '2rem', marginBottom: '6px' }}>
+          <h2 className="serif-headline" style={{ fontSize: '2.2rem', marginBottom: '6px' }}>
             Voice-to-Architecture Canvas
           </h2>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: '620px', fontSize: '0.95rem' }}>
-            An interactive node topology. Drag nodes anywhere on the board, trace data packets, or speak commands like <strong>&quot;Add Redis Cache&quot;</strong> to dynamically expand the system design.
+          <p style={{ color: 'var(--text-muted)', maxWidth: '750px', fontSize: '0.95rem' }}>
+            Interactive node topology. Drag nodes freely across the infinite board, trace live data packets, or speak commands like <strong>&quot;Add Redis Cache&quot;</strong> to dynamically synthesize system architecture.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button onClick={() => addCustomNode('Redis Cache Layer', 'storage')} className="btn-wispr-secondary" style={{ fontSize: '0.82rem' }}>
-            <Plus size={14} /> Add Redis Cache
+        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+          <button onClick={() => addCustomNode('Redis Cache Layer', 'storage')} className="btn-brutal-white" style={{ fontSize: '0.85rem' }}>
+            <Plus size={15} /> Add Redis Cache
           </button>
-          <button onClick={triggerPacketFlow} disabled={isSimulatingPacket} className="btn-wispr-lilac" style={{ fontSize: '0.82rem' }}>
-            <Play size={14} />
+          <button onClick={triggerPacketFlow} disabled={isSimulatingPacket} className="btn-brutal-lilac" style={{ fontSize: '0.85rem' }}>
+            <Play size={15} />
             <span>{isSimulatingPacket ? 'Tracing...' : 'Trace Pipeline'}</span>
           </button>
         </div>
@@ -209,35 +212,45 @@ export const VoiceArchitectureCanvas: React.FC<VoiceArchitectureCanvasProps> = (
       {/* Main Split */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)',
-        gap: '20px'
+        gridTemplateColumns: 'minmax(0, 3fr) minmax(320px, 1fr)',
+        gap: '24px'
       }}>
         {/* Dynamic Draggable SVG Canvas */}
         <div
-          className="wispr-card"
+          className="genz-card"
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           style={{
-            padding: '20px',
+            padding: '24px',
             position: 'relative',
-            minHeight: '440px',
+            minHeight: '520px',
             overflow: 'hidden',
             backgroundColor: '#faf8f0',
             userSelect: 'none'
           }}
         >
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Network size={16} color="#093c31" />
-              <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>Dynamic Draggable Nodes</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Network size={18} color="#093c31" />
+              <span style={{ fontSize: '0.95rem', fontWeight: 800 }}>Dynamic Draggable Nodes</span>
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              <Move size={12} />
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              backgroundColor: '#ffffff',
+              padding: '4px 10px',
+              borderRadius: '999px',
+              border: '1.5px solid var(--border-black)'
+            }}>
+              <Move size={13} />
               <span>Click & drag any node</span>
             </div>
           </div>
 
-          <div style={{ position: 'relative', width: '100%', height: '360px' }}>
+          <div style={{ position: 'relative', width: '100%', height: '440px' }}>
             {/* Dynamic Connecting Lines */}
             <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
               {nodes.map(fromNode => {
@@ -252,10 +265,10 @@ export const VoiceArchitectureCanvas: React.FC<VoiceArchitectureCanvasProps> = (
                       y1={p1.y}
                       x2={p2.x}
                       y2={p2.y}
-                      stroke="#093c31"
-                      strokeWidth="2"
-                      strokeDasharray="4,4"
-                      opacity="0.6"
+                      stroke="var(--border-black)"
+                      strokeWidth="2.5"
+                      strokeDasharray="6,6"
+                      opacity="0.8"
                     />
                   );
                 });
@@ -275,28 +288,28 @@ export const VoiceArchitectureCanvas: React.FC<VoiceArchitectureCanvasProps> = (
                     position: 'absolute',
                     left: `${node.x}px`,
                     top: `${node.y}px`,
-                    width: '130px',
-                    padding: '10px 12px',
-                    borderRadius: '10px',
-                    backgroundColor: isStepActive ? '#ecdffc' : '#ffffff',
-                    border: `1.5px solid ${isStepActive ? 'var(--border-dark)' : isSelected ? '#093c31' : '#eae6db'}`,
-                    boxShadow: isSelected ? '0 4px 14px rgba(0,0,0,0.1)' : '0 1px 3px rgba(0,0,0,0.04)',
+                    width: '145px',
+                    padding: '12px 14px',
+                    borderRadius: '14px',
+                    backgroundColor: isStepActive ? 'var(--accent-lilac)' : isSelected ? 'var(--accent-yellow)' : '#ffffff',
+                    border: '2.5px solid var(--border-black)',
+                    boxShadow: isSelected ? '4px 4px 0px var(--border-black)' : '2px 2px 0px var(--border-black)',
                     cursor: 'grab',
-                    transition: draggingNodeRef.current?.id === node.id ? 'none' : 'box-shadow 0.2s',
+                    transition: draggingNodeRef.current?.id === node.id ? 'none' : 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
                     zIndex: isSelected ? 20 : 10
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
-                    {node.category === 'input' && <Sparkles size={13} color="#0284c7" />}
-                    {node.category === 'processing' && <Zap size={13} color="#7c3aed" />}
-                    {node.category === 'ai' && <Cpu size={13} color="#d97706" />}
-                    {node.category === 'execution' && <Terminal size={13} color="#059669" />}
-                    {node.category === 'storage' && <Layers size={13} color="#093c31" />}
-                    <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#111827' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
+                    {node.category === 'input' && <Sparkles size={14} color="#0284c7" />}
+                    {node.category === 'processing' && <Zap size={14} color="#7c3aed" />}
+                    {node.category === 'ai' && <Cpu size={14} color="#d97706" />}
+                    {node.category === 'execution' && <Terminal size={14} color="#059669" />}
+                    {node.category === 'storage' && <Layers size={14} color="#093c31" />}
+                    <span style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-main)' }}>
                       {node.title.split(' ')[0]}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', lineHeight: '1.2' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', lineHeight: '1.2', fontWeight: 600 }}>
                     {node.title}
                   </div>
                 </div>
@@ -306,37 +319,38 @@ export const VoiceArchitectureCanvas: React.FC<VoiceArchitectureCanvasProps> = (
         </div>
 
         {/* Node Inspector */}
-        <div className="wispr-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div className="genz-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="mono-tag">NODE INSPECTOR</span>
+            <span className="genz-tag" style={{ backgroundColor: 'var(--accent-lilac)' }}>NODE INSPECTOR</span>
           </div>
 
-          <h3 className="serif-headline" style={{ fontSize: '1.4rem' }}>{selectedNode.title}</h3>
+          <h3 className="serif-headline" style={{ fontSize: '1.6rem' }}>{selectedNode.title}</h3>
 
           <div style={{
-            padding: '14px',
+            padding: '16px',
             backgroundColor: '#faf8f0',
-            border: '1px solid #eae6db',
-            borderRadius: '10px',
-            fontSize: '0.86rem',
-            color: 'var(--text-secondary)',
-            lineHeight: '1.5'
+            border: '2px solid var(--border-black)',
+            boxShadow: '2px 2px 0px var(--border-black)',
+            borderRadius: '12px',
+            fontSize: '0.88rem',
+            color: 'var(--text-main)',
+            lineHeight: '1.6'
           }}>
             {selectedNode.description}
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '6px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Category:</span>
-              <span className="mono-tag">{selectedNode.category.toUpperCase()}</span>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 700 }}>Category:</span>
+              <span className="genz-tag" style={{ backgroundColor: 'var(--accent-yellow)' }}>{selectedNode.category.toUpperCase()}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Position:</span>
-              <span className="mono-tag">X: {Math.round(selectedNode.x)}px, Y: {Math.round(selectedNode.y)}px</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 700 }}>Coordinates:</span>
+              <span className="genz-tag" style={{ backgroundColor: '#f1f5f9' }}>X: {Math.round(selectedNode.x)}px, Y: {Math.round(selectedNode.y)}px</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Throughput:</span>
-              <span style={{ color: '#059669', fontWeight: 600 }}>&lt; 85ms Latency</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 700 }}>Latency:</span>
+              <span style={{ color: '#059669', fontWeight: 800, fontSize: '0.88rem' }}>&lt; 85ms Flow Path</span>
             </div>
           </div>
         </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, ExternalLink, ChevronRight, Activity, Gamepad2, PlayCircle, Network } from 'lucide-react';
+import { Mic, MicOff, Activity, Zap, PlayCircle, Network, ExternalLink } from 'lucide-react';
 import { ActiveTab, TelemetryData } from '../types';
 
 interface HeaderProps {
@@ -18,79 +18,56 @@ export const Header: React.FC<HeaderProps> = ({
   telemetry
 }) => {
   return (
-    <div style={{ position: 'sticky', top: 0, zIndex: 60 }}>
-      {/* 1. Top Announcement Bar (Matches Screenshot) */}
-      <div style={{
-        backgroundColor: 'var(--bg-banner)',
-        color: '#ffffff',
-        padding: '9px 16px',
-        textAlign: 'center',
-        fontSize: '0.84rem',
-        fontWeight: 500,
-        letterSpacing: '0.01em',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '6px'
-      }}>
-        <span>Wispr Flow Developer Suite is now active for Goa Hacker House.</span>
-        <a
-          href="https://ref.wisprflow.ai/hhg"
-          target="_blank"
-          rel="noreferrer"
-          style={{
-            color: '#ffffff',
-            fontWeight: 600,
-            textDecoration: 'underline',
-            textUnderlineOffset: '3px',
-            display: 'inline-flex',
-            alignItems: 'center',
-            marginLeft: '4px'
-          }}
-        >
-          Verify referral: ref.wisprflow.ai/hhg <ChevronRight size={14} />
-        </a>
+    <div style={{ position: 'sticky', top: 0, zIndex: 60, width: '100%' }}>
+      {/* 1. Gen Z Marquee Top Banner */}
+      <div className="marquee-container">
+        <div className="marquee-content">
+          <span>⚡ WISPR FLOW × GOA HACKER HOUSE 2026 • FROM YAPS TO APPS • KEYBOARDS ARE OFFICIALLY OBSOLETE • 3.8x DEV VELOCITY • REGISTERED VIA REF.WISPRFLOW.AI/HHG • 100% VOICE CODING SPEEDRUN •&nbsp;</span>
+          <span>⚡ WISPR FLOW × GOA HACKER HOUSE 2026 • FROM YAPS TO APPS • KEYBOARDS ARE OFFICIALLY OBSOLETE • 3.8x DEV VELOCITY • REGISTERED VIA REF.WISPRFLOW.AI/HHG • 100% VOICE CODING SPEEDRUN •&nbsp;</span>
+        </div>
       </div>
 
-      {/* 2. Floating Navbar (Matches Screenshot) */}
-      <div style={{ padding: '12px 20px', backgroundColor: 'rgba(250, 248, 240, 0.95)', backdropFilter: 'blur(10px)' }}>
+      {/* 2. Full-Width Navbar Container */}
+      <div style={{ padding: '12px 24px', backgroundColor: 'rgba(250, 247, 238, 0.95)', backdropFilter: 'blur(12px)', borderBottom: '2px solid var(--border-black)' }}>
         <header style={{
-          maxWidth: '1280px',
-          margin: '0 auto',
-          backgroundColor: '#ffffff',
-          borderRadius: '16px',
-          border: '1px solid rgba(0, 0, 0, 0.08)',
-          boxShadow: '0 2px 14px -2px rgba(0, 0, 0, 0.04)',
-          padding: '8px 16px',
+          width: '100%',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '12px'
+          gap: '16px'
         }}>
-          {/* Logo (Wispr Waveform + Flow) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '2.5px', height: '18px' }}>
-              <div style={{ width: '3px', height: '10px', backgroundColor: '#111827', borderRadius: '2px' }} />
-              <div style={{ width: '3px', height: '18px', backgroundColor: '#111827', borderRadius: '2px' }} />
-              <div style={{ width: '3px', height: '14px', backgroundColor: '#111827', borderRadius: '2px' }} />
-              <div style={{ width: '3px', height: '8px', backgroundColor: '#111827', borderRadius: '2px' }} />
+          {/* Brand Logo & Tags */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '22px' }}>
+              <div style={{ width: '4px', height: '12px', backgroundColor: '#18181b', borderRadius: '2px' }} />
+              <div style={{ width: '4px', height: '22px', backgroundColor: '#18181b', borderRadius: '2px' }} />
+              <div style={{ width: '4px', height: '16px', backgroundColor: '#18181b', borderRadius: '2px' }} />
+              <div style={{ width: '4px', height: '9px', backgroundColor: '#18181b', borderRadius: '2px' }} />
             </div>
-            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', letterSpacing: '-0.03em' }}>
-              Flow
-            </span>
-            <span className="mono-tag" style={{ marginLeft: '4px', fontSize: '0.7rem' }}>
-              DEV-EDITION
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
+              <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#18181b', letterSpacing: '-0.04em' }}>
+                Flow
+              </span>
+              <span className="serif-italic" style={{ fontSize: '1.1rem', color: '#093c31', fontWeight: 600 }}>
+                studio
+              </span>
+            </div>
+
+            <span className="genz-tag tag-yellow">
+              GOA &apos;26 SHORTLIST
             </span>
           </div>
 
-          {/* Center Pill Switcher (Matches [ Dictation | Notetaker ] style) */}
+          {/* 4 Pillars Navigation Pills */}
           <nav style={{
             display: 'flex',
-            backgroundColor: '#ece8db',
-            borderRadius: '9999px',
+            backgroundColor: '#ffffff',
+            borderRadius: '12px',
             padding: '4px',
-            gap: '2px'
+            gap: '4px',
+            border: '2px solid var(--border-black)',
+            boxShadow: '3px 3px 0px var(--border-black)'
           }}>
             <button
               onClick={() => setActiveTab('cockpit')}
@@ -98,20 +75,19 @@ export const Header: React.FC<HeaderProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '6px 14px',
-                borderRadius: '9999px',
+                padding: '8px 16px',
+                borderRadius: '8px',
                 border: 'none',
-                backgroundColor: activeTab === 'cockpit' ? '#ffffff' : 'transparent',
-                color: activeTab === 'cockpit' ? '#111827' : '#6b7280',
-                fontWeight: activeTab === 'cockpit' ? 600 : 500,
-                fontSize: '0.84rem',
+                backgroundColor: activeTab === 'cockpit' ? 'var(--accent-lilac)' : 'transparent',
+                color: '#18181b',
+                fontWeight: activeTab === 'cockpit' ? 800 : 600,
+                fontSize: '0.86rem',
                 cursor: 'pointer',
-                boxShadow: activeTab === 'cockpit' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s ease'
+                transition: 'all 0.1s ease'
               }}
             >
-              <Activity size={14} />
-              <span>Dev HUD</span>
+              <Activity size={15} />
+              <span>1. Dev HUD</span>
             </button>
 
             <button
@@ -120,20 +96,19 @@ export const Header: React.FC<HeaderProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '6px 14px',
-                borderRadius: '9999px',
+                padding: '8px 16px',
+                borderRadius: '8px',
                 border: 'none',
-                backgroundColor: activeTab === 'game' ? '#ffffff' : 'transparent',
-                color: activeTab === 'game' ? '#111827' : '#6b7280',
-                fontWeight: activeTab === 'game' ? 600 : 500,
-                fontSize: '0.84rem',
+                backgroundColor: activeTab === 'game' ? 'var(--accent-matcha)' : 'transparent',
+                color: '#18181b',
+                fontWeight: activeTab === 'game' ? 800 : 600,
+                fontSize: '0.86rem',
                 cursor: 'pointer',
-                boxShadow: activeTab === 'game' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s ease'
+                transition: 'all 0.1s ease'
               }}
             >
-              <Gamepad2 size={14} />
-              <span>Sonic Game</span>
+              <Zap size={15} />
+              <span>2. Voice Blitz (Game)</span>
             </button>
 
             <button
@@ -142,20 +117,19 @@ export const Header: React.FC<HeaderProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '6px 14px',
-                borderRadius: '9999px',
+                padding: '8px 16px',
+                borderRadius: '8px',
                 border: 'none',
-                backgroundColor: activeTab === 'automations' ? '#ffffff' : 'transparent',
-                color: activeTab === 'automations' ? '#111827' : '#6b7280',
-                fontWeight: activeTab === 'automations' ? 600 : 500,
-                fontSize: '0.84rem',
+                backgroundColor: activeTab === 'automations' ? 'var(--accent-cyan)' : 'transparent',
+                color: '#18181b',
+                fontWeight: activeTab === 'automations' ? 800 : 600,
+                fontSize: '0.86rem',
                 cursor: 'pointer',
-                boxShadow: activeTab === 'automations' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s ease'
+                transition: 'all 0.1s ease'
               }}
             >
-              <PlayCircle size={14} />
-              <span>Automations</span>
+              <PlayCircle size={15} />
+              <span>3. Automations</span>
             </button>
 
             <button
@@ -164,46 +138,44 @@ export const Header: React.FC<HeaderProps> = ({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '6px',
-                padding: '6px 14px',
-                borderRadius: '9999px',
+                padding: '8px 16px',
+                borderRadius: '8px',
                 border: 'none',
-                backgroundColor: activeTab === 'canvas' ? '#ffffff' : 'transparent',
-                color: activeTab === 'canvas' ? '#111827' : '#6b7280',
-                fontWeight: activeTab === 'canvas' ? 600 : 500,
-                fontSize: '0.84rem',
+                backgroundColor: activeTab === 'canvas' ? 'var(--accent-peach)' : 'transparent',
+                color: '#18181b',
+                fontWeight: activeTab === 'canvas' ? 800 : 600,
+                fontSize: '0.86rem',
                 cursor: 'pointer',
-                boxShadow: activeTab === 'canvas' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-                transition: 'all 0.15s ease'
+                transition: 'all 0.1s ease'
               }}
             >
-              <Network size={14} />
-              <span>Architecture</span>
+              <Network size={15} />
+              <span>4. Architecture</span>
             </button>
           </nav>
 
-          {/* Right Action: Lilac Button (Matches Screenshot [Get started on Windows]) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            {/* Status indicator */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#6b7280' }}>
-              <div style={{
-                width: '7px',
-                height: '7px',
-                borderRadius: '50%',
-                backgroundColor: isListening ? '#10b981' : '#9ca3af'
-              }} />
-              <span>{isListening ? `${telemetry.currentWpm} WPM Flow` : 'Ready'}</span>
-            </div>
+          {/* Right Controls */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <a
+              href="https://ref.wisprflow.ai/hhg"
+              target="_blank"
+              rel="noreferrer"
+              className="genz-tag tag-cyan"
+              style={{ textDecoration: 'none' }}
+            >
+              <span>ref.wisprflow.ai/hhg</span>
+              <ExternalLink size={11} />
+            </a>
 
-            {/* Signature Lilac CTA Button */}
             <button
               onClick={onToggleMic}
-              className="btn-wispr-lilac"
+              className="btn-brutal-lilac"
               style={{
-                backgroundColor: isListening ? '#bbf7d0' : 'var(--accent-lilac)'
+                backgroundColor: isListening ? 'var(--accent-matcha)' : 'var(--accent-lilac)'
               }}
             >
-              {isListening ? <Mic size={15} /> : <MicOff size={15} />}
-              <span>{isListening ? 'Mute Microphone' : 'Start Voice Input'}</span>
+              {isListening ? <Mic size={16} /> : <MicOff size={16} />}
+              <span>{isListening ? `${telemetry.currentWpm || 165} WPM Active` : 'Start Voice Input'}</span>
             </button>
           </div>
         </header>

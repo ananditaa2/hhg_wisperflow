@@ -128,30 +128,34 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
       {/* Header */}
-      <div className="wispr-card" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+      <div className="genz-card" style={{ padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div className="eyebrow-text" style={{ marginBottom: '8px' }}>
-            PILLAR 3: VOICE AUTOMATIONS
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+            <span className="genz-tag" style={{ backgroundColor: 'var(--accent-yellow)' }}>PILLAR 3</span>
+            <span style={{ fontSize: '0.8rem', fontWeight: 800, letterSpacing: '0.08em', color: 'var(--text-muted)' }}>
+              VOICE PIPELINE AUTOMATIONS
+            </span>
           </div>
-          <h2 className="serif-headline" style={{ fontSize: '2rem', marginBottom: '6px' }}>
+          <h2 className="serif-headline" style={{ fontSize: '2.2rem', marginBottom: '6px' }}>
             Spoken Pipeline Orchestrator
           </h2>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: '620px', fontSize: '0.95rem' }}>
-            Trigger mission-critical developer workflows with natural speech. Speak a macro into Wispr Flow to orchestrate testing, deployment, and security scans.
+          <p style={{ color: 'var(--text-muted)', maxWidth: '750px', fontSize: '0.95rem' }}>
+            Trigger mission-critical developer workflows with natural speech. Speak a macro into Wispr Flow to orchestrate testing, deployment, and security scans hands-free.
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div style={{
-            backgroundColor: '#faf8f0',
-            padding: '8px 14px',
-            borderRadius: '8px',
-            border: '1px solid #eae6db',
-            fontSize: '0.82rem',
-            color: '#093c31',
-            fontWeight: 600,
+            backgroundColor: 'var(--accent-lilac-soft)',
+            padding: '8px 16px',
+            borderRadius: '999px',
+            border: '2px solid var(--border-black)',
+            boxShadow: '2px 2px 0px var(--border-black)',
+            fontSize: '0.85rem',
+            color: 'var(--text-main)',
+            fontWeight: 700,
             display: 'flex',
             alignItems: 'center',
             gap: '6px'
@@ -160,8 +164,8 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
             <span>Say &quot;Deploy&quot;, &quot;Audit&quot;, &quot;API&quot;, or &quot;Docker&quot;</span>
           </div>
 
-          <button onClick={resetAll} className="btn-wispr-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-            <RefreshCw size={14} /> Reset
+          <button onClick={resetAll} className="btn-brutal-white" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+            <RefreshCw size={14} /> Reset All
           </button>
         </div>
       </div>
@@ -170,7 +174,7 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-        gap: '16px'
+        gap: '20px'
       }}>
         {tasks.map(task => {
           const isRunning = task.status === 'running';
@@ -179,28 +183,26 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
           return (
             <div
               key={task.id}
-              className="wispr-card"
+              className="genz-card"
               style={{
-                padding: '20px',
+                padding: '24px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                borderColor: isRunning ? 'var(--accent-forest)' : isSuccess ? '#059669' : undefined,
-                borderWidth: (isRunning || isSuccess) ? '1.5px' : '1px'
+                backgroundColor: isRunning ? '#ecfdf5' : isSuccess ? '#f0fdf4' : '#ffffff'
               }}
             >
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {task.category === 'deployment' && <Rocket size={17} color="#093c31" />}
-                    {task.category === 'security' && <Shield size={17} color="#0284c7" />}
-                    {task.category === 'ai' && <FileCode2 size={17} color="#7c3aed" />}
-                    <h3 style={{ fontSize: '0.98rem', fontWeight: 700 }}>{task.name}</h3>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    {task.category === 'deployment' && <Rocket size={20} color="#093c31" />}
+                    {task.category === 'security' && <Shield size={20} color="#0284c7" />}
+                    {task.category === 'ai' && <FileCode2 size={20} color="#7c3aed" />}
+                    <h3 style={{ fontSize: '1.05rem', fontWeight: 800 }}>{task.name}</h3>
                   </div>
 
-                  <span className="mono-tag" style={{
-                    backgroundColor: isRunning ? '#ecfdf5' : isSuccess ? '#dcfce7' : undefined,
-                    color: isRunning ? '#047857' : isSuccess ? '#15803d' : undefined
+                  <span className="genz-tag" style={{
+                    backgroundColor: isRunning ? 'var(--accent-matcha)' : isSuccess ? '#86efac' : '#f1f5f9'
                   }}>
                     {isRunning ? 'RUNNING' : isSuccess ? 'COMPLETE' : 'STANDBY'}
                   </span>
@@ -208,15 +210,16 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
 
                 <div style={{
                   backgroundColor: '#faf8f0',
-                  padding: '10px 12px',
-                  borderRadius: '8px',
-                  border: '1px solid #eae6db',
-                  marginBottom: '14px'
+                  padding: '12px 14px',
+                  borderRadius: '12px',
+                  border: '2px solid var(--border-black)',
+                  boxShadow: '2px 2px 0px var(--border-black)',
+                  marginBottom: '16px'
                 }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 800, letterSpacing: '0.04em', marginBottom: '4px' }}>
                     🎙️ SPOKEN VOICE TRIGGER:
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: '#111827' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: '#111827', fontWeight: 600 }}>
                     &quot;{task.voiceTrigger}&quot;
                   </div>
                 </div>
@@ -225,22 +228,22 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
               <button
                 onClick={() => runTask(task)}
                 disabled={isRunning}
-                className={isSuccess ? 'btn-wispr-secondary' : 'btn-wispr-lilac'}
-                style={{ width: '100%', justifyContent: 'center' }}
+                className={isSuccess ? 'btn-brutal-white' : 'btn-brutal-lilac'}
+                style={{ width: '100%', justifyContent: 'center', padding: '12px' }}
               >
                 {isRunning ? (
                   <>
-                    <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
+                    <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
                     <span>Executing Pipeline...</span>
                   </>
                 ) : isSuccess ? (
                   <>
-                    <CheckCircle2 size={15} color="#059669" />
+                    <CheckCircle2 size={16} color="#059669" />
                     <span>Workflow Succeeded ({task.duration})</span>
                   </>
                 ) : (
                   <>
-                    <PlayCircle size={15} />
+                    <PlayCircle size={16} />
                     <span>Trigger Spoken Macro</span>
                   </>
                 )}
@@ -253,27 +256,29 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
       {/* Terminal Screen & DAG */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(420px, 1fr))',
         gap: '20px'
       }}>
         {/* Terminal Screen */}
-        <div className="wispr-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="genz-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Terminal size={17} color="#093c31" />
-              <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Live Automation Execution Console</h3>
+              <Terminal size={18} color="#093c31" />
+              <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Live Automation Execution Console</h3>
             </div>
-            <span className="mono-tag">WISPR-CLI DAEMON</span>
+            <span className="genz-tag" style={{ backgroundColor: 'var(--accent-cyan)' }}>WISPR-CLI DAEMON</span>
           </div>
 
           <div style={{
             backgroundColor: '#111827',
-            borderRadius: '10px',
-            padding: '16px',
-            minHeight: '170px',
+            borderRadius: '12px',
+            border: '2px solid var(--border-black)',
+            boxShadow: '3px 3px 0px var(--border-black)',
+            padding: '18px',
+            minHeight: '200px',
             fontFamily: 'var(--font-mono)',
-            fontSize: '0.82rem',
-            lineHeight: '1.6',
+            fontSize: '0.84rem',
+            lineHeight: '1.7',
             color: '#a7f3d0',
             overflowY: 'auto'
           }}>
@@ -284,8 +289,8 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
               </div>
             ))}
             {runningTaskId && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#34d399' }}>
-                <span className="pulse-dot" style={{ width: '6px', height: '6px' }}></span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#34d399', marginTop: '6px' }}>
+                <span className="pulse-dot" style={{ width: '8px', height: '8px', backgroundColor: '#34d399' }}></span>
                 <span>executing step...</span>
               </div>
             )}
@@ -293,9 +298,9 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
         </div>
 
         {/* Pipeline Topology */}
-        <div className="wispr-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>CI/CD Pipeline Topology</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+        <div className="genz-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>CI/CD Pipeline Topology</h3>
+          <p style={{ fontSize: '0.88rem', color: 'var(--text-muted)' }}>
             Each stage is validated automatically upon voice macro trigger:
           </p>
 
@@ -304,10 +309,11 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
             alignItems: 'center',
             justifyContent: 'space-between',
             gap: '8px',
-            padding: '16px 8px',
+            padding: '20px 12px',
             backgroundColor: '#faf8f0',
-            borderRadius: '10px',
-            border: '1px solid #eae6db'
+            borderRadius: '14px',
+            border: '2px solid var(--border-black)',
+            boxShadow: '2px 2px 0px var(--border-black)'
           }}>
             {[
               { label: 'Voice Intent', sub: 'Wispr Flow' },
@@ -318,25 +324,26 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
               <React.Fragment key={i}>
                 <div style={{ textAlign: 'center', flex: 1 }}>
                   <div style={{
-                    width: '32px',
-                    height: '32px',
+                    width: '36px',
+                    height: '36px',
                     borderRadius: '50%',
-                    backgroundColor: runningTaskId ? '#dcfce7' : '#ffffff',
-                    border: '1.5px solid #093c31',
+                    backgroundColor: runningTaskId ? '#86efac' : '#ffffff',
+                    border: '2px solid var(--border-black)',
+                    boxShadow: '2px 2px 0px var(--border-black)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    margin: '0 auto 6px',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    color: '#093c31'
+                    margin: '0 auto 8px',
+                    fontSize: '0.85rem',
+                    fontWeight: 800,
+                    color: 'var(--text-main)'
                   }}>
                     {i + 1}
                   </div>
-                  <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{stage.label}</div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{stage.sub}</div>
+                  <div style={{ fontSize: '0.84rem', fontWeight: 800 }}>{stage.label}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>{stage.sub}</div>
                 </div>
-                {i < 3 && <span style={{ color: '#9ca3af', fontSize: '1.1rem' }}>→</span>}
+                {i < 3 && <span style={{ color: 'var(--border-black)', fontSize: '1.2rem', fontWeight: 800 }}>→</span>}
               </React.Fragment>
             ))}
           </div>
