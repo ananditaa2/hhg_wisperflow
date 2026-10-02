@@ -53,10 +53,6 @@ export const Header: React.FC<HeaderProps> = ({
                 studio
               </span>
             </div>
-
-            <span className="genz-tag tag-yellow">
-              GOA &apos;26 SHORTLIST
-            </span>
           </div>
 
           {/* 4 Pillars Navigation Pills */}
@@ -108,7 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             >
               <Zap size={15} />
-              <span>2. Voice Blitz (Game)</span>
+              <span>2. Yap Quest ⚔️</span>
             </button>
 
             <button
