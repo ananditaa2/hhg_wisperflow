@@ -66,6 +66,27 @@ export const Header: React.FC<HeaderProps> = ({
             boxShadow: '3px 3px 0px var(--border-black)'
           }}>
             <button
+              onClick={() => setActiveTab('game')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '8px 18px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'game' ? 'var(--accent-matcha)' : 'transparent',
+                color: '#18181b',
+                fontWeight: activeTab === 'game' ? 900 : 600,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                transition: 'all 0.1s ease'
+              }}
+            >
+              <Zap size={15} />
+              <span>🎮 Voice Arcade 🕹️</span>
+            </button>
+
+            <button
               onClick={() => setActiveTab('cockpit')}
               style={{
                 display: 'flex',
@@ -83,28 +104,7 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             >
               <Activity size={15} />
-              <span>1. Dev HUD</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('game')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: activeTab === 'game' ? 'var(--accent-matcha)' : 'transparent',
-                color: '#18181b',
-                fontWeight: activeTab === 'game' ? 800 : 600,
-                fontSize: '0.86rem',
-                cursor: 'pointer',
-                transition: 'all 0.1s ease'
-              }}
-            >
-              <Zap size={15} />
-              <span>2. Yap Quest ⚔️</span>
+              <span>Voice Studio</span>
             </button>
 
             <button
@@ -125,7 +125,7 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             >
               <PlayCircle size={15} />
-              <span>3. Automations</span>
+              <span>Voice Triggers</span>
             </button>
 
             <button
@@ -146,7 +146,7 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             >
               <Network size={15} />
-              <span>4. Architecture</span>
+              <span>Audio Spectrum</span>
             </button>
           </nav>
 

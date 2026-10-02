@@ -1,630 +1,1511 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import confetti from 'canvas-confetti';
-import { Mic, RotateCcw, Scroll, Swords, Sparkles, Star, Shield, Flame, Volume2, ChevronRight, Trophy } from 'lucide-react';
+import { 
+  Mic, 
+  MicOff, 
+  RotateCcw, 
+  Sparkles, 
+  Volume2, 
+  Trophy, 
+  Flame, 
+  Shield, 
+  Zap, 
+  Bomb, 
+  Sliders, 
+  Play, 
+  Pause, 
+  CheckCircle2, 
+  AlertTriangle,
+  Target
+} from 'lucide-react';
 
 interface VoiceGameProps {
   isListening: boolean;
-  volume: number;
+  volume: number; // 0 to 100
   onStartMic: () => void;
   playTone: (freq?: number, type?: OscillatorType, duration?: number) => void;
   lastSpokenCommand?: string;
 }
 
-/* ─── ROOM DEFINITIONS ──────────────────────────────────────────────────── */
-type RoomType = 'forest' | 'cave' | 'castle' | 'volcano' | 'sky' | 'final';
-type PlayerClass = 'wizard' | 'warrior' | 'rogue';
+type GameMode = 'runner' | 'bomb' | 'target';
 
-interface Room {
-  id: RoomType;
-  title: string;
-  emoji: string;
-  gradient: [string, string];
-  description: string;
-  challenge: string;           // what the player must say
-  triggerWords: string[];      // aliases
-  loot: string;
-  xp: number;
-  monster?: string;
-  monsterHp?: number;
+/* ─── SOUND FX SYNTHESIZER ──────────────────────────────────────────────── */
+function playSfx(type: 'jump' | 'blast' | 'coin' | 'hit' | 'win' | 'tick' | 'boom') {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    const now = ctx.currentTime;
+    if (type === 'jump') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(220, now);
+      osc.frequency.exponentialRampToValueAtTime(600, now + 0.18);
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+      osc.start(now);
+      osc.stop(now + 0.18);
+    } else if (type === 'blast') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(800, now);
+      osc.frequency.exponentialRampToValueAtTime(120, now + 0.3);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } else if (type === 'coin') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(587.33, now);
+      osc.frequency.setValueAtTime(880, now + 0.08);
+      gain.gain.setValueAtTime(0.15, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } else if (type === 'hit') {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(150, now);
+      osc.frequency.exponentialRampToValueAtTime(40, now + 0.25);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.25);
+      osc.start(now);
+      osc.stop(now + 0.25);
+    } else if (type === 'tick') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(800, now);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+      osc.start(now);
+      osc.stop(now + 0.05);
+    } else if (type === 'boom') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(100, now);
+      osc.frequency.exponentialRampToValueAtTime(25, now + 0.6);
+      gain.gain.setValueAtTime(0.25, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.6);
+      osc.start(now);
+      osc.stop(now + 0.6);
+    } else if (type === 'win') {
+      const notes = [440, 554.37, 659.25, 880];
+      notes.forEach((f, i) => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.type = 'triangle';
+        o.frequency.value = f;
+        o.connect(g);
+        g.connect(ctx.destination);
+        g.gain.setValueAtTime(0.1, now + i * 0.08);
+        g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.2);
+        o.start(now + i * 0.08);
+        o.stop(now + i * 0.08 + 0.2);
+      });
+    }
+  } catch {
+    // Audio context unavailable
+  }
 }
 
-const ROOMS: Room[] = [
+/* ─── RUNNER OBJECT INTERFACES ─────────────────────────────────────────── */
+interface RunnerItem {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  type: 'coin' | 'gem' | 'spike' | 'drone' | 'shield';
+  collected?: boolean;
+}
+
+interface Particle {
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  size: number;
+  color: string;
+  life: number;
+  maxLife: number;
+}
+
+/* ─── BOMB CHALLENGES ─────────────────────────────────────────────────── */
+interface BombPrompt {
+  id: number;
+  instruction: string;
+  hint: string;
+  type: 'keyword' | 'loudness' | 'softness';
+  validWords?: string[];
+  minVolume?: number;
+  maxVolume?: number;
+}
+
+const BOMB_PROMPTS: BombPrompt[] = [
   {
-    id: 'forest',
-    title: 'The Whispering Forest',
-    emoji: '🌲',
-    gradient: ['#064e3b', '#065f46'],
-    description: 'A sentient forest blocks your path. Its ancient tree-spirits demand a password whispered from the soul.',
-    challenge: 'open',
-    triggerWords: ['open', 'sesame', 'unlock', 'reveal', 'enter'],
-    loot: '🗝️ Ancient Key',
-    xp: 100,
+    id: 1,
+    instruction: '🐶 Make an ANIMAL SOUND or scream its name!',
+    hint: 'Say "woof", "meow", "moo", "roar", "quack", "oink", "baa", "bark"',
+    type: 'keyword',
+    validWords: ['woof', 'meow', 'moo', 'roar', 'quack', 'oink', 'baa', 'bark', 'lion', 'dog', 'cat', 'cow', 'wolf', 'tiger']
   },
   {
-    id: 'cave',
-    title: 'The Dragon\'s Cave',
-    emoji: '🐉',
-    gradient: ['#7c2d12', '#9a3412'],
-    description: 'A sleeping dragon blocks the treasure vault. Its one weakness: the sound of pure laughter. Make it laugh!',
-    challenge: 'haha',
-    triggerWords: ['haha', 'hehe', 'lol', 'laugh', 'funny', 'joke', 'giggle'],
-    loot: '💎 Dragon Gem',
-    xp: 200,
-    monster: '🐉 Ignis the Sleeping Drake',
-    monsterHp: 100,
+    id: 2,
+    instruction: '🍕 Name a delicious FOOD or JUNK FOOD!',
+    hint: 'Say "pizza", "burger", "taco", "sushi", "cookie", "cake", "ice cream", "fries"',
+    type: 'keyword',
+    validWords: ['pizza', 'burger', 'taco', 'sushi', 'cookie', 'cake', 'ice cream', 'fries', 'pasta', 'donut', 'chocolate', 'bread', 'apple', 'banana', 'curry']
   },
   {
-    id: 'castle',
-    title: 'The Haunted Castle',
-    emoji: '🏰',
-    gradient: ['#312e81', '#3730a3'],
-    description: 'A ghost knight challenges you to a duel! You have no sword — only words. Name the spell of dispelling!',
-    challenge: 'begone',
-    triggerWords: ['begone', 'vanish', 'disappear', 'ghost', 'banish', 'away', 'gone'],
-    loot: '🛡️ Enchanted Shield',
-    xp: 300,
-    monster: '👻 Sir Wraithmore the Undying',
-    monsterHp: 150,
+    id: 3,
+    instruction: '⚡ Scream a word that rhymes with "LIGHT"!',
+    hint: 'Say "night", "bright", "fight", "flight", "white", "kite", "bite", "right"',
+    type: 'keyword',
+    validWords: ['night', 'bright', 'fight', 'flight', 'white', 'kite', 'bite', 'right', 'sight', 'tight', 'might', 'height']
   },
   {
-    id: 'volcano',
-    title: 'The Volcano Summit',
-    emoji: '🌋',
-    gradient: ['#7c2d12', '#c2410c'],
-    description: 'The lava god demands a sacrifice — but will accept a dramatic BATTLE CRY as tribute! Scream your war cry!',
-    challenge: 'charge',
-    triggerWords: ['charge', 'attack', 'battle', 'fight', 'war', 'forward', 'go', 'rush'],
-    loot: '⚔️ Obsidian Blade',
-    xp: 400,
-    monster: '🌋 Magmar the Lava God',
-    monsterHp: 200,
+    id: 4,
+    instruction: '🗣️ SCREAM AS LOUD AS YOU CAN (> 75% Volume)!',
+    hint: 'Let out a loud shout or war cry right now into your mic!',
+    type: 'loudness',
+    minVolume: 75
   },
   {
-    id: 'sky',
-    title: 'The Sky Citadel',
-    emoji: '☁️',
-    gradient: ['#0c4a6e', '#075985'],
-    description: 'A wise cloud-wizard refuses to let you pass. She will only move for those who can say the magic sky word.',
-    challenge: 'fly',
-    triggerWords: ['fly', 'soar', 'float', 'cloud', 'sky', 'wings', 'ascend', 'rise'],
-    loot: '🪄 Cloud Staff',
-    xp: 500,
-    monster: '☁️ Nimbus the Cloudwitch',
-    monsterHp: 250,
+    id: 5,
+    instruction: '🌈 Shout any COLOR of the rainbow!',
+    hint: 'Say "red", "blue", "green", "yellow", "purple", "orange", "pink", "violet"',
+    type: 'keyword',
+    validWords: ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'pink', 'violet', 'cyan', 'gold', 'silver', 'black', 'white']
   },
   {
-    id: 'final',
-    title: 'The Voice Sanctum',
-    emoji: '✨',
-    gradient: ['#4c1d95', '#5b21b6'],
-    description: 'The final guardian — a mirror of yourself. It can only be defeated by the most powerful word in any language. Speak it.',
-    challenge: 'wispr',
-    triggerWords: ['wispr', 'whisper', 'flow', 'voice', 'speak', 'word'],
-    loot: '👑 Crown of the Voice Mage',
-    xp: 1000,
-    monster: '🪞 The Shadow Self',
-    monsterHp: 300,
+    id: 6,
+    instruction: '🚀 Name something that FLIES through the sky!',
+    hint: 'Say "plane", "rocket", "bird", "superman", "drone", "dragon", "alien", "ufo"',
+    type: 'keyword',
+    validWords: ['plane', 'rocket', 'bird', 'superman', 'drone', 'dragon', 'alien', 'ufo', 'helicopter', 'eagle', 'bat', 'comet', 'falcon']
   },
+  {
+    id: 7,
+    instruction: '🤫 WHISPER a secret word very softly (< 30% Vol)!',
+    hint: 'Whisper anything quietly without waking the baby!',
+    type: 'softness',
+    maxVolume: 35
+  },
+  {
+    id: 8,
+    instruction: '🦸 Shout a SUPERHERO or SUPERPOWER!',
+    hint: 'Say "batman", "spiderman", "iron man", "superman", "laser", "flight", "teleport"',
+    type: 'keyword',
+    validWords: ['batman', 'spiderman', 'iron man', 'superman', 'laser', 'flight', 'teleport', 'thor', 'hulk', 'flash', 'speed', 'invisible', 'fire']
+  },
+  {
+    id: 9,
+    instruction: '🎉 Shout a word that rhymes with "COOL"!',
+    hint: 'Say "pool", "fool", "rule", "school", "tool", "fuel", "jewel"',
+    type: 'keyword',
+    validWords: ['pool', 'fool', 'rule', 'school', 'tool', 'fuel', 'jewel', 'drool', 'wool']
+  },
+  {
+    id: 10,
+    instruction: '👑 FINAL BOSS: Shout "WISPR FLOW" to win!',
+    hint: 'Say "wispr flow" or "wispr" or "flow" clearly!',
+    type: 'keyword',
+    validWords: ['wispr', 'flow', 'wisper', 'whisper', 'wispr flow', 'whisper flow', 'champion', 'victory']
+  }
 ];
 
-const CLASS_DATA: Record<PlayerClass, { name: string; emoji: string; color: string; perk: string; hp: number }> = {
-  wizard: { name: 'Voice Wizard',  emoji: '🧙', color: '#7c3aed', perk: '+50% XP per room',    hp: 80  },
-  warrior: { name: 'Battle Crier', emoji: '⚔️', color: '#c2410c', perk: 'Monsters deal -30% damage', hp: 120 },
-  rogue:   { name: 'Word Rogue',   emoji: '🗡️', color: '#0284c7', perk: 'Aliases accepted freely',   hp: 100 },
-};
-
-/* ─── COMPONENT ─────────────────────────────────────────────────────────── */
 export const VoiceGame: React.FC<VoiceGameProps> = ({
   isListening,
   volume,
   onStartMic,
-  playTone,
-  lastSpokenCommand = '',
+  lastSpokenCommand = ''
 }) => {
+  const [activeMode, setActiveMode] = useState<GameMode>('runner');
+  const [sensitivity, setSensitivity] = useState<number>(1.4); // volume multiplier
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     MODE 1: SCREAM RUNNER (SONIC BLAST PHYSICS)
+  ═══════════════════════════════════════════════════════════════════════════ */
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const animRef = useRef<number>(0);
+  const [gameState, setGameState] = useState<'idle' | 'playing' | 'gameover'>('idle');
+  const [score, setScore] = useState<number>(0);
+  const [highScore, setHighScore] = useState<number>(() => {
+    try {
+      return parseInt(localStorage.getItem('wispr_runner_high') || '0', 10);
+    } catch {
+      return 0;
+    }
+  });
+  const [coinsCollected, setCoinsCollected] = useState<number>(0);
+  const [hasShield, setHasShield] = useState<boolean>(false);
+  const [laserActive, setLaserActive] = useState<boolean>(false);
+  const [recentAction, setRecentAction] = useState<string>('');
 
-  const [screen, setScreen] = useState<'select' | 'playing' | 'victory'>('select');
-  const [playerClass, setPlayerClass] = useState<PlayerClass>('wizard');
-  const [roomIndex, setRoomIndex] = useState(0);
-  const [playerHp, setPlayerHp] = useState(100);
-  const [monsterHp, setMonsterHp] = useState(100);
-  const [score, setScore] = useState(0);
-  const [inventory, setInventory] = useState<string[]>([]);
-  const [log, setLog] = useState<string[]>(['Your adventure begins... speak to shape the world!']);
-  const [shake, setShake] = useState(false);
-  const [flash, setFlash] = useState<'green' | 'red' | null>(null);
-  const [highScore] = useState(() => Number(localStorage.getItem('yap_quest_hi') || 0));
+  // Runner Mutable Ref State for 60fps Loop
+  const runnerRef = useRef({
+    playerY: 260,
+    playerVy: 0,
+    playerX: 90,
+    groundY: 310,
+    isGrounded: true,
+    distance: 0,
+    speed: 5.5,
+    items: [] as RunnerItem[],
+    particles: [] as Particle[],
+    shieldActive: false,
+    laserTime: 0,
+    lastSpawnDist: 0,
+    screenShake: 0
+  });
 
-  const room = ROOMS[Math.min(roomIndex, ROOMS.length - 1)];
-  const cls = CLASS_DATA[playerClass];
+  // Effective scaled volume
+  const effectiveVol = Math.min(100, Math.round(volume * sensitivity));
 
-  /* ─── Canvas ambient animation ───────────────────────────────────────── */
+  // Voice Speech Command Trigger for Runner
   useEffect(() => {
+    if (!lastSpokenCommand || gameState !== 'playing') return;
+    const cmd = lastSpokenCommand.toLowerCase();
+
+    if (cmd.includes('blast') || cmd.includes('fire') || cmd.includes('boom') || cmd.includes('pew') || cmd.includes('laser')) {
+      // Fire Laser Cannon!
+      runnerRef.current.laserTime = 40; // frames
+      setLaserActive(true);
+      playSfx('blast');
+      setRecentAction('💥 LASER CANNON FIRED!');
+      // Obliterate all on-screen obstacles
+      runnerRef.current.items.forEach(item => {
+        if ((item.type === 'spike' || item.type === 'drone') && item.x > runnerRef.current.playerX && item.x < 700) {
+          item.collected = true;
+          setScore(s => s + 75);
+          // Spawn boom particles
+          for (let p = 0; p < 12; p++) {
+            runnerRef.current.particles.push({
+              x: item.x,
+              y: item.y,
+              vx: (Math.random() - 0.5) * 8,
+              vy: (Math.random() - 0.5) * 8,
+              size: Math.random() * 6 + 3,
+              color: '#f43f5e',
+              life: 25,
+              maxLife: 25
+            });
+          }
+        }
+      });
+      setTimeout(() => setLaserActive(false), 600);
+    } else if (cmd.includes('jump') || cmd.includes('hop') || cmd.includes('up')) {
+      if (runnerRef.current.isGrounded) {
+        runnerRef.current.playerVy = -15;
+        runnerRef.current.isGrounded = false;
+        playSfx('jump');
+        setRecentAction('🦘 VOICE JUMP!');
+      }
+    } else if (cmd.includes('shield')) {
+      runnerRef.current.shieldActive = true;
+      setHasShield(true);
+      playSfx('coin');
+      setRecentAction('🛡️ SHIELD DEPLOYED!');
+    }
+  }, [lastSpokenCommand, gameState]);
+
+  // Main 60fps Runner Loop
+  useEffect(() => {
+    if (activeMode !== 'runner') return;
+    let animId: number;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let t = 0;
-    const stars = Array.from({ length: 60 }, () => ({
-      x: Math.random() * 800,
-      y: Math.random() * 300,
-      r: Math.random() * 2 + 0.5,
-      speed: Math.random() * 0.4 + 0.1,
-      twinkle: Math.random() * Math.PI * 2,
-    }));
+    const loop = () => {
+      const r = runnerRef.current;
+      const width = canvas.width;
+      const height = canvas.height;
 
-    const draw = () => {
-      const w = canvas.width;
-      const h = canvas.height;
-      ctx.clearRect(0, 0, w, h);
-      t += 0.02;
+      // Clear Screen with Screen Shake
+      ctx.save();
+      if (r.screenShake > 0) {
+        const shakeX = (Math.random() - 0.5) * r.screenShake;
+        const shakeY = (Math.random() - 0.5) * r.screenShake;
+        ctx.translate(shakeX, shakeY);
+        r.screenShake *= 0.85;
+        if (r.screenShake < 0.5) r.screenShake = 0;
+      }
 
-      // Subtle dot-grid breathing
-      const vNorm = Math.min(volume / 60, 1);
-      const pulse = 1 + vNorm * 0.35;
+      ctx.clearRect(-10, -10, width + 20, height + 20);
 
-      stars.forEach(s => {
-        s.twinkle += 0.04;
-        const alpha = 0.3 + 0.5 * Math.abs(Math.sin(s.twinkle));
+      // Sky Gradient
+      const skyGrad = ctx.createLinearGradient(0, 0, 0, height);
+      skyGrad.addColorStop(0, '#090d16');
+      skyGrad.addColorStop(0.65, '#1e1b4b');
+      skyGrad.addColorStop(1, '#311042');
+      ctx.fillStyle = skyGrad;
+      ctx.fillRect(0, 0, width, height);
+
+      // Parallax Neon Grid Horizon
+      ctx.strokeStyle = 'rgba(168, 85, 247, 0.2)';
+      ctx.lineWidth = 1;
+      const groundY = r.groundY;
+      for (let i = 0; i < width; i += 32) {
+        const scrollX = (i - (r.distance * 0.5) % 32);
         ctx.beginPath();
-        ctx.arc(s.x, s.y, s.r * pulse, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(216, 180, 254, ${alpha})`;
-        ctx.fill();
-        s.y -= s.speed;
-        if (s.y < 0) { s.y = h; s.x = Math.random() * w; }
+        ctx.moveTo(scrollX, groundY);
+        ctx.lineTo(scrollX - 40, height);
+        ctx.stroke();
+      }
+
+      // Ground Line
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(0, groundY, width, height - groundY);
+      ctx.strokeStyle = '#22d3ee';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(width, groundY);
+      ctx.stroke();
+
+      if (gameState === 'playing') {
+        r.distance += r.speed;
+        setScore(Math.floor(r.distance / 10));
+
+        // VOICE THRUST PHYSICS:
+        // Whisper (15-35%): gentle bounce
+        // Talking (35-65%): jump
+        // Scream (>65%): rocket launch
+        if (effectiveVol > 22) {
+          const upwardThrust = (effectiveVol / 100) * 1.6;
+          r.playerVy -= upwardThrust;
+          r.isGrounded = false;
+
+          // Rocket Thrust Particles
+          if (effectiveVol > 55) {
+            for (let p = 0; p < 2; p++) {
+              r.particles.push({
+                x: r.playerX + 10,
+                y: r.playerY + 22,
+                vx: -r.speed * 0.5 + (Math.random() - 0.5) * 3,
+                vy: Math.random() * 4 + 2,
+                size: Math.random() * 5 + 3,
+                color: effectiveVol > 75 ? '#ef4444' : '#f59e0b',
+                life: 18,
+                maxLife: 18
+              });
+            }
+          }
+        }
+
+        // Apply Gravity
+        r.playerVy += 0.72; // gravity
+        r.playerY += r.playerVy;
+
+        // Ground Collision
+        if (r.playerY >= groundY - 26) {
+          r.playerY = groundY - 26;
+          r.playerVy = 0;
+          r.isGrounded = true;
+        }
+
+        // Ceiling Bound
+        if (r.playerY < 20) {
+          r.playerY = 20;
+          r.playerVy = 0;
+        }
+
+        // Spawn Obstacles & Coins
+        if (r.distance - r.lastSpawnDist > 200) {
+          r.lastSpawnDist = r.distance;
+          const rand = Math.random();
+          if (rand < 0.45) {
+            // Coin Arc
+            for (let c = 0; c < 3; c++) {
+              r.items.push({
+                x: width + c * 35,
+                y: groundY - 45 - Math.sin((c / 2) * Math.PI) * 45,
+                width: 18,
+                height: 18,
+                type: 'coin'
+              });
+            }
+          } else if (rand < 0.75) {
+            // Spikes on ground
+            r.items.push({
+              x: width,
+              y: groundY - 24,
+              width: 24,
+              height: 24,
+              type: 'spike'
+            });
+          } else if (rand < 0.90) {
+            // Flying Spiked Drone
+            r.items.push({
+              x: width,
+              y: groundY - 70 - Math.random() * 60,
+              width: 26,
+              height: 26,
+              type: 'drone'
+            });
+          } else {
+            // Rare Shield Orb
+            r.items.push({
+              x: width,
+              y: groundY - 80,
+              width: 22,
+              height: 22,
+              type: 'shield'
+            });
+          }
+        }
+
+        // Move Items & Check Collisions
+        r.items.forEach(item => {
+          item.x -= r.speed;
+
+          if (!item.collected) {
+            // Player Box: x: r.playerX, y: r.playerY, w: 30, h: 30
+            const hit = (
+              r.playerX < item.x + item.width &&
+              r.playerX + 28 > item.x &&
+              r.playerY < item.y + item.height &&
+              r.playerY + 28 > item.y
+            );
+
+            if (hit) {
+              if (item.type === 'coin') {
+                item.collected = true;
+                setCoinsCollected(c => c + 1);
+                setScore(s => s + 25);
+                playSfx('coin');
+                // Coin particle burst
+                for (let p = 0; p < 8; p++) {
+                  r.particles.push({
+                    x: item.x,
+                    y: item.y,
+                    vx: (Math.random() - 0.5) * 5,
+                    vy: (Math.random() - 0.5) * 5,
+                    size: 3,
+                    color: '#fbbf24',
+                    life: 20,
+                    maxLife: 20
+                  });
+                }
+              } else if (item.type === 'shield') {
+                item.collected = true;
+                r.shieldActive = true;
+                setHasShield(true);
+                playSfx('coin');
+                setRecentAction('🛡️ SHIELD EQUIPPED!');
+              } else if (item.type === 'spike' || item.type === 'drone') {
+                if (r.shieldActive) {
+                  // Shield absorbs the blow!
+                  r.shieldActive = false;
+                  setHasShield(false);
+                  item.collected = true;
+                  r.screenShake = 12;
+                  playSfx('hit');
+                  setRecentAction('💥 SHIELD CRACKED BUT SAVED YOU!');
+                } else {
+                  // Game Over
+                  playSfx('hit');
+                  r.screenShake = 18;
+                  setGameState('gameover');
+                  const finalScore = Math.floor(r.distance / 10);
+                  if (finalScore > highScore) {
+                    setHighScore(finalScore);
+                    try {
+                      localStorage.setItem('wispr_runner_high', finalScore.toString());
+                    } catch {
+                      // ignore
+                    }
+                    confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+                  }
+                }
+              }
+            }
+          }
+        });
+
+        // Cleanup off-screen items
+        r.items = r.items.filter(item => item.x > -50 && !item.collected);
+      }
+
+      // Draw Laser Cannon Beam
+      if (r.laserTime > 0) {
+        r.laserTime--;
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 14;
+        ctx.shadowColor = '#0284c7';
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.moveTo(r.playerX + 24, r.playerY + 12);
+        ctx.lineTo(width, r.playerY + 12);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        // Core White Beam
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(r.playerX + 24, r.playerY + 12);
+        ctx.lineTo(width, r.playerY + 12);
+        ctx.stroke();
+      }
+
+      // Draw Items
+      r.items.forEach(item => {
+        if (item.type === 'coin') {
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(item.x + item.width / 2, item.y + item.height / 2, item.width / 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#d97706';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          // Inner shimmer
+          ctx.fillStyle = '#fef08a';
+          ctx.beginPath();
+          ctx.arc(item.x + item.width / 2 - 2, item.y + item.height / 2 - 2, 3, 0, Math.PI * 2);
+          ctx.fill();
+        } else if (item.type === 'shield') {
+          ctx.fillStyle = '#38bdf8';
+          ctx.beginPath();
+          ctx.arc(item.x + item.width / 2, item.y + item.height / 2, item.width / 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#ffffff';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.fillStyle = '#ffffff';
+          ctx.font = '12px sans-serif';
+          ctx.fillText('🛡️', item.x + 3, item.y + 16);
+        } else if (item.type === 'spike') {
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.moveTo(item.x, item.y + item.height);
+          ctx.lineTo(item.x + item.width / 2, item.y);
+          ctx.lineTo(item.x + item.width, item.y + item.height);
+          ctx.closePath();
+          ctx.fill();
+          ctx.strokeStyle = '#991b1b';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        } else if (item.type === 'drone') {
+          ctx.fillStyle = '#ec4899';
+          ctx.beginPath();
+          ctx.roundRect(item.x, item.y, item.width, item.height, 6);
+          ctx.fill();
+          ctx.strokeStyle = '#be185d';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          // Drone glowing eye
+          ctx.fillStyle = '#ffffff';
+          ctx.beginPath();
+          ctx.arc(item.x + item.width / 2, item.y + item.height / 2, 5, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.arc(item.x + item.width / 2, item.y + item.height / 2, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+        }
       });
 
-      // Voice-reactive halo
-      if (volume > 8) {
-        const cx = w * 0.5, cy = h * 0.5;
-        const rings = 4;
-        for (let i = 0; i < rings; i++) {
-          const rad = 30 + i * 28 + vNorm * 60;
-          const alpha = Math.max(0, 0.6 - i * 0.15 - (1 - vNorm) * 0.3);
-          ctx.beginPath();
-          ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(216, 180, 254, ${alpha})`;
-          ctx.lineWidth = 2.5;
-          ctx.stroke();
-        }
+      // Update & Render Particles
+      r.particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        ctx.fillStyle = p.color;
+        ctx.globalAlpha = p.life / p.maxLife;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+      });
+      r.particles = r.particles.filter(p => p.life > 0);
+
+      // Draw Player Character ("Aero Wispr")
+      const px = r.playerX;
+      const py = r.playerY;
+
+      // Shield Aura
+      if (r.shieldActive) {
+        ctx.strokeStyle = '#38bdf8';
+        ctx.lineWidth = 3;
+        ctx.shadowColor = '#0284c7';
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(px + 14, py + 14, 26, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.shadowBlur = 0;
       }
 
-      animRef.current = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => cancelAnimationFrame(animRef.current);
-  }, [volume, screen]);
+      // Body (Glowing rounded cyber cube / sonic orb)
+      ctx.fillStyle = effectiveVol > 60 ? '#f43f5e' : (effectiveVol > 25 ? '#a855f7' : '#06b6d4');
+      ctx.beginPath();
+      ctx.roundRect(px, py, 28, 28, 8);
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
 
-  /* ─── Voice command matching ─────────────────────────────────────────── */
-  const addLog = useCallback((msg: string) => {
-    setLog(prev => [...prev.slice(-6), msg]);
-  }, []);
+      // Expressive Face / Headphones
+      // Headphones band
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(px + 14, py + 8, 14, Math.PI, 0);
+      ctx.stroke();
+      // Headphone ear cups
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(px - 4, py + 8, 5, 10);
+      ctx.fillRect(px + 27, py + 8, 5, 10);
 
-  const triggerSuccess = useCallback(() => {
-    const xpGain = Math.round(room.xp * (playerClass === 'wizard' ? 1.5 : 1));
-    setScore(s => s + xpGain);
-    setInventory(inv => [...inv, room.loot]);
-    setFlash('green');
-    setTimeout(() => setFlash(null), 600);
-    playTone(660, 'sine', 0.25);
-    setTimeout(() => playTone(880, 'sine', 0.2), 180);
-    confetti({ particleCount: 70, spread: 80, origin: { y: 0.5 }, colors: ['#d8b4fe', '#86efac', '#fef08a'] });
-    addLog(`✅ ${room.loot} obtained! +${xpGain} XP`);
-
-    setTimeout(() => {
-      if (roomIndex + 1 >= ROOMS.length) {
-        setScreen('victory');
-        const finalScore = score + xpGain;
-        const hi = Math.max(highScore, finalScore);
-        localStorage.setItem('yap_quest_hi', String(hi));
-        confetti({ particleCount: 200, spread: 120, origin: { y: 0.4 } });
+      // Eyes
+      ctx.fillStyle = '#ffffff';
+      if (effectiveVol > 60) {
+        // Shocked / Screaming Eyes! (big circles)
+        ctx.beginPath();
+        ctx.arc(px + 9, py + 12, 4, 0, Math.PI * 2);
+        ctx.arc(px + 19, py + 12, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(px + 9, py + 12, 2, 0, Math.PI * 2);
+        ctx.arc(px + 19, py + 12, 2, 0, Math.PI * 2);
+        ctx.fill();
+        // Screaming Open Mouth!
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(px + 14, py + 21, 4, 0, Math.PI * 2);
+        ctx.fill();
       } else {
-        setRoomIndex(r => r + 1);
-        setMonsterHp(ROOMS[roomIndex + 1]?.monsterHp ?? 100);
-        addLog(`🚪 New room unlocked: ${ROOMS[roomIndex + 1]?.title}`);
+        // Normal Happy Eyes
+        ctx.beginPath();
+        ctx.arc(px + 9, py + 12, 3, 0, Math.PI * 2);
+        ctx.arc(px + 19, py + 12, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#000000';
+        ctx.beginPath();
+        ctx.arc(px + 10, py + 12, 1.5, 0, Math.PI * 2);
+        ctx.arc(px + 20, py + 12, 1.5, 0, Math.PI * 2);
+        ctx.fill();
+        // Smile
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(px + 14, py + 17, 3, 0, Math.PI);
+        ctx.stroke();
       }
-    }, 900);
-  }, [room, roomIndex, playerClass, score, highScore, playTone, addLog]);
 
-  const triggerFailure = useCallback(() => {
-    const dmg = playerClass === 'warrior' ? 7 : 10;
-    setPlayerHp(hp => {
-      const next = Math.max(0, hp - dmg);
-      if (next <= 0) { setScreen('select'); }
-      return next;
-    });
-    setShake(true);
-    setTimeout(() => setShake(false), 450);
-    setFlash('red');
-    setTimeout(() => setFlash(null), 600);
-    playTone(180, 'sawtooth', 0.2);
-    addLog(`❌ The ${room.monster ?? 'guardian'} attacks! -${dmg} HP`);
-  }, [playerClass, room, playTone, addLog]);
+      ctx.restore();
+      animId = requestAnimationFrame(loop);
+    };
 
-  useEffect(() => {
-    if (!lastSpokenCommand || screen !== 'playing') return;
-    const lower = lastSpokenCommand.toLowerCase().trim();
-    const hit = room.triggerWords.some(w => lower.includes(w));
-    if (hit) {
-      triggerSuccess();
-    } else if (lower.length > 2) {
-      triggerFailure();
+    animId = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(animId);
+  }, [activeMode, gameState, effectiveVol, highScore]);
+
+  const handleStartRunner = () => {
+    if (!isListening) {
+      onStartMic();
     }
-  }, [lastSpokenCommand, screen, room, triggerSuccess, triggerFailure]);
-
-  /* ─── Start game ─────────────────────────────────────────────────────── */
-  const startGame = () => {
-    if (!isListening) onStartMic();
-    setScreen('playing');
-    setRoomIndex(0);
+    runnerRef.current.playerY = 260;
+    runnerRef.current.playerVy = 0;
+    runnerRef.current.distance = 0;
+    runnerRef.current.items = [];
+    runnerRef.current.particles = [];
+    runnerRef.current.shieldActive = false;
+    runnerRef.current.laserTime = 0;
+    runnerRef.current.lastSpawnDist = 0;
     setScore(0);
-    setInventory([]);
-    setPlayerHp(cls.hp);
-    setMonsterHp(ROOMS[0].monsterHp ?? 100);
-    setLog(['🎮 Quest started! Speak to defeat the guardian...']);
-    playTone(440, 'triangle', 0.2);
+    setCoinsCollected(0);
+    setHasShield(false);
+    setGameState('playing');
+    playSfx('win');
   };
 
-  /* ─── HP bars ─────────────────────────────────────────────────────────── */
-  const HpBar = ({ current, max, color }: { current: number; max: number; color: string }) => (
-    <div style={{ width: '100%', height: '10px', backgroundColor: 'rgba(0,0,0,0.15)', borderRadius: '999px', overflow: 'hidden', border: '1.5px solid var(--border-black)' }}>
-      <div style={{ height: '100%', width: `${Math.max(0, (current / max) * 100)}%`, backgroundColor: color, borderRadius: '999px', transition: 'width 0.3s ease' }} />
-    </div>
-  );
+  /* ═══════════════════════════════════════════════════════════════════════
+     MODE 2: TICKING BOMB PARTY DUEL (CREATIVE VOICE CHALLENGES)
+  ═══════════════════════════════════════════════════════════════════════════ */
+  const [bombIndex, setBombIndex] = useState<number>(0);
+  const [bombTimeLeft, setBombTimeLeft] = useState<number>(10);
+  const [bombState, setBombState] = useState<'idle' | 'playing' | 'defused' | 'exploded'>('idle');
+  const [bombScore, setBombScore] = useState<number>(0);
+  const [bombSuccessText, setBombSuccessText] = useState<string>('');
 
-  /* ─── CLASS SELECT SCREEN ────────────────────────────────────────────── */
-  if (screen === 'select') {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
-        {/* Canvas BG */}
-        <canvas ref={canvasRef} width={800} height={300} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0, opacity: 0.35 }} />
+  const currentPrompt = BOMB_PROMPTS[bombIndex % BOMB_PROMPTS.length];
 
-        {/* Header */}
-        <div className="genz-card" style={{ padding: '32px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
-          <div style={{ fontSize: '3.5rem', marginBottom: '8px' }}>🎙️</div>
-          <h2 className="serif-headline" style={{ fontSize: 'clamp(2rem, 4vw, 3.2rem)', marginBottom: '8px' }}>
-            Yap Quest
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '1.1rem', maxWidth: '560px', margin: '0 auto 8px' }}>
-            A voice-powered RPG adventure. Speak magic words to defeat monsters, collect loot, and conquer 6 mythical realms — <strong>no keyboard required.</strong>
-          </p>
-          <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap', marginTop: '12px' }}>
-            <span className="genz-tag" style={{ backgroundColor: 'var(--accent-lilac)' }}>🗺️ 6 ROOMS</span>
-            <span className="genz-tag" style={{ backgroundColor: 'var(--accent-yellow)' }}>🎙️ VOICE-ONLY</span>
-            <span className="genz-tag" style={{ backgroundColor: 'var(--accent-matcha)' }}>👾 LIVE MONSTERS</span>
-            <span className="genz-tag" style={{ backgroundColor: 'var(--accent-peach)' }}>🏆 HIGH SCORE: {highScore}</span>
-          </div>
-        </div>
+  // Bomb Countdown Timer
+  useEffect(() => {
+    if (activeMode !== 'bomb' || bombState !== 'playing') return;
+    const interval = setInterval(() => {
+      setBombTimeLeft(t => {
+        if (t <= 1) {
+          clearInterval(interval);
+          setBombState('exploded');
+          playSfx('boom');
+          return 0;
+        }
+        playSfx('tick');
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [activeMode, bombState, bombIndex]);
 
-        {/* Class selection */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', position: 'relative', zIndex: 1 }}>
-          {(Object.entries(CLASS_DATA) as [PlayerClass, typeof CLASS_DATA[PlayerClass]][]).map(([key, c]) => (
-            <button
-              key={key}
-              onClick={() => setPlayerClass(key)}
-              className="genz-card"
-              style={{
-                padding: '28px 24px',
-                textAlign: 'left',
-                cursor: 'pointer',
-                background: playerClass === key ? c.color : '#ffffff',
-                color: playerClass === key ? '#ffffff' : 'var(--text-main)',
-                border: playerClass === key ? `3px solid var(--border-black)` : '2.5px solid var(--border-black)',
-                boxShadow: playerClass === key ? '6px 6px 0px var(--border-black)' : 'var(--shadow-brutal)',
-                transform: playerClass === key ? 'translate(-2px, -2px)' : 'none',
-                transition: 'all 0.15s cubic-bezier(0.16, 1, 0.3, 1)',
-              }}
-            >
-              <div style={{ fontSize: '2.4rem', marginBottom: '10px' }}>{c.emoji}</div>
-              <div style={{ fontWeight: 900, fontSize: '1.2rem', marginBottom: '4px' }}>{c.name}</div>
-              <div style={{ fontSize: '0.88rem', opacity: 0.75, marginBottom: '10px' }}>{c.perk}</div>
-              <div style={{ display: 'flex', gap: '12px', fontSize: '0.82rem', fontWeight: 700, opacity: 0.8 }}>
-                <span>❤️ {c.hp} HP</span>
-              </div>
-              {playerClass === key && (
-                <div style={{ marginTop: '12px', fontSize: '0.8rem', fontWeight: 800, backgroundColor: 'rgba(255,255,255,0.2)', padding: '4px 10px', borderRadius: '999px', display: 'inline-block' }}>
-                  ✓ SELECTED
-                </div>
-              )}
-            </button>
-          ))}
-        </div>
+  // Voice Verification for Bomb Mode
+  useEffect(() => {
+    if (activeMode !== 'bomb' || bombState !== 'playing') return;
 
-        {/* Preview of rooms */}
-        <div className="genz-card" style={{ padding: '24px', zIndex: 1, position: 'relative' }}>
-          <h3 style={{ fontWeight: 900, fontSize: '1.1rem', marginBottom: '16px' }}>🗺️ The 6 Realms You'll Conquer:</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '10px' }}>
-            {ROOMS.map((r, i) => (
-              <div key={r.id} style={{ padding: '10px 14px', background: `linear-gradient(135deg, ${r.gradient[0]}, ${r.gradient[1]})`, borderRadius: '12px', border: '2px solid var(--border-black)', boxShadow: '2px 2px 0px var(--border-black)', color: '#ffffff' }}>
-                <div style={{ fontSize: '1.4rem' }}>{r.emoji}</div>
-                <div style={{ fontSize: '0.78rem', fontWeight: 800, marginTop: '4px' }}>{r.title}</div>
-                <div style={{ fontSize: '0.7rem', opacity: 0.75, marginTop: '2px' }}>+{r.xp} XP</div>
-              </div>
-            ))}
-          </div>
-        </div>
+    // Loudness Check
+    if (currentPrompt.type === 'loudness') {
+      if (effectiveVol >= (currentPrompt.minVolume || 75)) {
+        handleBombSuccess(`💥 LOUD SHOUT REGISTERED (${effectiveVol}% Vol)!`);
+      }
+      return;
+    }
 
-        <div style={{ textAlign: 'center', zIndex: 1, position: 'relative' }}>
-          <button onClick={startGame} className="btn-brutal-lilac" style={{ padding: '18px 48px', fontSize: '1.2rem', letterSpacing: '-0.02em' }}>
-            <Scroll size={22} />
-            Begin Quest as {cls.name} {cls.emoji}
-          </button>
-        </div>
-      </div>
-    );
-  }
+    // Softness Check
+    if (currentPrompt.type === 'softness') {
+      if (lastSpokenCommand && effectiveVol < (currentPrompt.maxVolume || 35)) {
+        handleBombSuccess(`🤫 SOFT WHISPER ACCEPTED!`);
+      }
+      return;
+    }
 
-  /* ─── VICTORY SCREEN ─────────────────────────────────────────────────── */
-  if (screen === 'victory') {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%' }}>
-        <canvas ref={canvasRef} width={800} height={300} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0, opacity: 0.35 }} />
-        <div className="genz-card" style={{ padding: '48px', textAlign: 'center', zIndex: 1, position: 'relative', background: 'linear-gradient(135deg, #fef08a 0%, #d8b4fe 100%)' }}>
-          <div style={{ fontSize: '4rem', marginBottom: '12px' }}>👑</div>
-          <h2 className="serif-headline" style={{ fontSize: '3rem', marginBottom: '8px' }}>Quest Complete!</h2>
-          <p style={{ fontSize: '1.1rem', color: 'var(--text-muted)', marginBottom: '24px' }}>You conquered all 6 realms with your voice alone.</p>
-          <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '28px' }}>
-            <div className="genz-card" style={{ padding: '16px 28px', backgroundColor: '#ffffff' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)' }}>FINAL SCORE</div>
-              <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#7c3aed' }}>{score}</div>
-            </div>
-            <div className="genz-card" style={{ padding: '16px 28px', backgroundColor: '#ffffff' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)' }}>ITEMS FOUND</div>
-              <div style={{ fontSize: '2.4rem', fontWeight: 900 }}>{inventory.length}</div>
-            </div>
-            <div className="genz-card" style={{ padding: '16px 28px', backgroundColor: '#ffffff' }}>
-              <div style={{ fontSize: '0.8rem', fontWeight: 800, color: 'var(--text-muted)' }}>HP REMAINING</div>
-              <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#059669' }}>{playerHp}</div>
-            </div>
-          </div>
-          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '20px', flexWrap: 'wrap' }}>
-            {inventory.map((item, i) => (
-              <span key={i} className="genz-tag" style={{ backgroundColor: 'var(--accent-lilac)', fontSize: '0.95rem', padding: '6px 14px' }}>{item}</span>
-            ))}
-          </div>
-          <button onClick={() => setScreen('select')} className="btn-brutal-lilac" style={{ padding: '14px 36px', fontSize: '1.05rem' }}>
-            <RotateCcw size={18} /> Play Again
-          </button>
-        </div>
-      </div>
-    );
-  }
+    // Keyword Match Check
+    if (currentPrompt.type === 'keyword' && lastSpokenCommand) {
+      const words = lastSpokenCommand.toLowerCase().split(/\s+/);
+      const match = currentPrompt.validWords?.some(w => 
+        words.some(usrWord => usrWord.includes(w) || w.includes(usrWord))
+      );
 
-  /* ─── MAIN GAME SCREEN ───────────────────────────────────────────────── */
-  const mHpMax = room.monsterHp ?? 100;
-  const progressPct = (roomIndex / ROOMS.length) * 100;
+      if (match) {
+        handleBombSuccess(`✅ VERIFIED: "${lastSpokenCommand}"!`);
+      }
+    }
+  }, [effectiveVol, lastSpokenCommand, activeMode, bombState, currentPrompt]);
+
+  const handleBombSuccess = (reason: string) => {
+    playSfx('win');
+    setBombSuccessText(reason);
+    setBombScore(s => s + bombTimeLeft * 100 + 50);
+
+    if (bombIndex + 1 >= BOMB_PROMPTS.length) {
+      setBombState('defused');
+      confetti({ particleCount: 120, spread: 80, origin: { y: 0.5 } });
+    } else {
+      setTimeout(() => {
+        setBombIndex(i => i + 1);
+        setBombTimeLeft(10);
+        setBombSuccessText('');
+      }, 1200);
+    }
+  };
+
+  const handleStartBomb = () => {
+    if (!isListening) onStartMic();
+    setBombIndex(0);
+    setBombTimeLeft(10);
+    setBombScore(0);
+    setBombSuccessText('');
+    setBombState('playing');
+    playSfx('coin');
+  };
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     MODE 3: TARGET DECIBEL CANNON (PITCH & MODULATION)
+  ═══════════════════════════════════════════════════════════════════════════ */
+  const [targetZone, setTargetZone] = useState<{ min: number; max: number }>({ min: 40, max: 65 });
+  const [targetHoldTime, setTargetHoldTime] = useState<number>(0);
+  const [targetScore, setTargetScore] = useState<number>(0);
+  const [aliensDestroyed, setAliensDestroyed] = useState<number>(0);
+
+  useEffect(() => {
+    if (activeMode !== 'target') return;
+    const interval = setInterval(() => {
+      if (effectiveVol >= targetZone.min && effectiveVol <= targetZone.max) {
+        setTargetHoldTime(h => {
+          if (h >= 100) {
+            playSfx('blast');
+            setAliensDestroyed(a => a + 1);
+            setTargetScore(s => s + 250);
+            confetti({ particleCount: 30, spread: 50 });
+            // Pick new target range
+            const newMin = Math.floor(Math.random() * 40) + 20;
+            setTargetZone({ min: newMin, max: newMin + 25 });
+            return 0;
+          }
+          return h + 4;
+        });
+      } else {
+        setTargetHoldTime(h => Math.max(0, h - 2));
+      }
+    }, 60);
+    return () => clearInterval(interval);
+  }, [activeMode, effectiveVol, targetZone]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', position: 'relative' }}>
-      {/* Ambient canvas */}
-      <canvas
-        ref={canvasRef}
-        width={800}
-        height={300}
-        style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none', zIndex: 0, opacity: 0.25 }}
-      />
+    <div style={{ padding: '24px 32px', maxWidth: '1400px', margin: '0 auto', width: '100%' }}>
+      {/* ─── ARCADE HEADER & MODE SWITCHER ─── */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: '16px',
+        marginBottom: '20px'
+      }}>
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="genz-tag tag-cyan">100% REAL-TIME VOICE CONTROLLED</span>
+            <span className="genz-tag tag-yellow">NO APIS • PURE ARCADE FUN</span>
+          </div>
+          <h1 style={{
+            fontSize: '2.4rem',
+            fontWeight: 900,
+            color: '#18181b',
+            letterSpacing: '-0.04em',
+            marginTop: '8px',
+            lineHeight: 1.1
+          }}>
+            Wispr Voice Arcade 🕹️
+          </h1>
+          <p style={{ color: '#4b5563', fontSize: '0.98rem', marginTop: '4px', fontWeight: 500 }}>
+            No boring forms, no technical setup. Just speak, scream, or whisper into your mic to play!
+          </p>
+        </div>
 
-      {/* Flash overlay */}
-      {flash && (
+        {/* Game Mode Selector Pills */}
         <div style={{
-          position: 'fixed', inset: 0, zIndex: 999, pointerEvents: 'none',
-          backgroundColor: flash === 'green' ? 'rgba(134, 239, 172, 0.25)' : 'rgba(244, 63, 94, 0.22)',
-          transition: 'opacity 0.3s',
-        }} />
-      )}
+          display: 'flex',
+          gap: '8px',
+          backgroundColor: '#ffffff',
+          padding: '6px',
+          borderRadius: '16px',
+          border: '2px solid var(--border-black)',
+          boxShadow: '4px 4px 0px var(--border-black)'
+        }}>
+          <button
+            onClick={() => setActiveMode('runner')}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '10px',
+              border: 'none',
+              backgroundColor: activeMode === 'runner' ? 'var(--accent-matcha)' : 'transparent',
+              fontWeight: 800,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Flame size={16} />
+            <span>1. Scream Runner</span>
+          </button>
 
-      {/* Top Status Bar */}
-      <div className="genz-card" style={{ padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px', position: 'relative', zIndex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '1.5rem' }}>{cls.emoji}</span>
-          <div>
-            <div style={{ fontSize: '0.78rem', fontWeight: 800, color: 'var(--text-muted)' }}>{cls.name}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ fontSize: '0.88rem', fontWeight: 800, color: '#ef4444' }}>❤️ {playerHp}/{cls.hp}</span>
-              <div style={{ width: '100px' }}><HpBar current={playerHp} max={cls.hp} color="#ef4444" /></div>
-            </div>
-          </div>
-        </div>
+          <button
+            onClick={() => setActiveMode('bomb')}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '10px',
+              border: 'none',
+              backgroundColor: activeMode === 'bomb' ? 'var(--accent-lilac)' : 'transparent',
+              fontWeight: 800,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Bomb size={16} />
+            <span>2. Ticking Voice Bomb</span>
+          </button>
 
-        {/* Quest progress */}
-        <div style={{ flex: 1, maxWidth: '320px', minWidth: '200px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', fontWeight: 800, marginBottom: '4px', color: 'var(--text-muted)' }}>
-            <span>QUEST PROGRESS</span>
-            <span>Room {roomIndex + 1} / {ROOMS.length}</span>
-          </div>
-          <div style={{ width: '100%', height: '10px', backgroundColor: '#f1f5f9', borderRadius: '999px', border: '1.5px solid var(--border-black)', overflow: 'hidden' }}>
-            <div style={{ height: '100%', width: `${progressPct}%`, background: 'linear-gradient(90deg, #d8b4fe, #7c3aed)', borderRadius: '999px', transition: 'width 0.5s ease' }} />
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-          <div className="genz-tag" style={{ backgroundColor: 'var(--accent-yellow)', fontSize: '0.95rem', padding: '6px 14px' }}>
-            <Trophy size={14} style={{ display: 'inline', marginRight: '4px' }} />
-            {score} XP
-          </div>
-          <button onClick={() => setScreen('select')} className="btn-brutal-white" style={{ padding: '6px 12px', fontSize: '0.82rem' }}>
-            <RotateCcw size={14} /> Quit
+          <button
+            onClick={() => setActiveMode('target')}
+            style={{
+              padding: '10px 18px',
+              borderRadius: '10px',
+              border: 'none',
+              backgroundColor: activeMode === 'target' ? 'var(--accent-cyan)' : 'transparent',
+              fontWeight: 800,
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <Target size={16} />
+            <span>3. Vocal Decibel Cannon</span>
           </button>
         </div>
       </div>
 
-      {/* Main Game Area */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) minmax(300px, 1fr)', gap: '20px', position: 'relative', zIndex: 1 }}>
+      {/* ─── LIVE VOICE SENSOR BAR (ALWAYS ACTIVE) ─── */}
+      <div style={{
+        backgroundColor: '#ffffff',
+        borderRadius: '16px',
+        padding: '14px 20px',
+        border: '2px solid var(--border-black)',
+        boxShadow: '4px 4px 0px var(--border-black)',
+        marginBottom: '20px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '16px'
+      }}>
+        {/* Mic Activation Button */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <button
+            onClick={onStartMic}
+            className="btn-brutal-green"
+            style={{
+              backgroundColor: isListening ? '#86efac' : '#fca5a5',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 18px',
+              fontSize: '0.9rem'
+            }}
+          >
+            {isListening ? <Mic size={18} /> : <MicOff size={18} />}
+            <span>{isListening ? '🎤 Mic Live & Listening' : '🔴 Click to Turn On Mic'}</span>
+          </button>
 
-        {/* Left: Room & Monster Panel */}
-        <div
-          className="genz-card"
-          style={{
-            padding: '0',
-            overflow: 'hidden',
-            display: 'flex',
-            flexDirection: 'column',
-            minHeight: '520px',
-            animation: shake ? 'shakeAnim 0.45s ease' : 'none',
-          }}
-        >
-          {/* Room header with gradient */}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: '#6b7280' }}>
+              Real-Time Voice Volume
+            </span>
+            <span style={{ fontSize: '1.05rem', fontWeight: 900, color: '#18181b' }}>
+              {effectiveVol}% &nbsp;
+              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: effectiveVol > 60 ? '#ef4444' : '#059669' }}>
+                {effectiveVol < 15 ? '🤫 Silent / Whisper' : effectiveVol < 45 ? '💬 Talking' : effectiveVol < 75 ? '🚀 LOUD JUMP!' : '🔥 MAXIMUM SCREAM!'}
+              </span>
+            </span>
+          </div>
+        </div>
+
+        {/* Visual Volume Meter Gauge */}
+        <div style={{ flex: 1, minWidth: '220px', maxWidth: '450px' }}>
           <div style={{
-            background: `linear-gradient(135deg, ${room.gradient[0]}, ${room.gradient[1]})`,
-            padding: '28px 28px 24px',
-            color: '#ffffff',
-            position: 'relative',
+            height: '20px',
+            backgroundColor: '#f3f4f6',
+            borderRadius: '10px',
+            overflow: 'hidden',
+            border: '2px solid var(--border-black)',
+            position: 'relative'
           }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <div style={{ fontSize: '0.8rem', fontWeight: 800, opacity: 0.75, letterSpacing: '0.08em', marginBottom: '6px' }}>
-                  🗺️ REALM {roomIndex + 1} OF {ROOMS.length}
+            <div style={{
+              width: `${Math.min(100, effectiveVol)}%`,
+              height: '100%',
+              backgroundColor: effectiveVol > 75 ? '#ef4444' : effectiveVol > 40 ? '#f59e0b' : '#10b981',
+              transition: 'width 0.05s ease',
+              borderRadius: '6px'
+            }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.72rem', fontWeight: 700, marginTop: '3px', color: '#9ca3af' }}>
+            <span>0% Whisper</span>
+            <span>40% Talk</span>
+            <span>70% Shout</span>
+            <span>100% Scream</span>
+          </div>
+        </div>
+
+        {/* Mic Sensitivity Slider */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Sliders size={16} color="#6b7280" />
+          <span style={{ fontSize: '0.82rem', fontWeight: 700, color: '#374151' }}>Mic Boost:</span>
+          <input
+            type="range"
+            min="0.8"
+            max="2.5"
+            step="0.1"
+            value={sensitivity}
+            onChange={(e) => setSensitivity(parseFloat(e.target.value))}
+            style={{ width: '90px', cursor: 'pointer' }}
+          />
+          <span style={{ fontSize: '0.82rem', fontWeight: 800, color: '#18181b' }}>{sensitivity}x</span>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          MODE 1 VIEW: SCREAM RUNNER
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {activeMode === 'runner' && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px' }}>
+          {/* Main Game Screen Canvas */}
+          <div style={{
+            backgroundColor: '#ffffff',
+            borderRadius: '20px',
+            border: '3px solid var(--border-black)',
+            boxShadow: '6px 6px 0px var(--border-black)',
+            overflow: 'hidden',
+            position: 'relative'
+          }}>
+            {/* Top Canvas HUD Overlay */}
+            <div style={{
+              position: 'absolute',
+              top: '16px',
+              left: '16px',
+              right: '16px',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              pointerEvents: 'none',
+              zIndex: 10
+            }}>
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="genz-tag" style={{ backgroundColor: '#ffffff', color: '#18181b', fontSize: '0.95rem', fontWeight: 900 }}>
+                  🏆 Score: {score}
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '2.8rem' }}>{room.emoji}</span>
-                  <h2 style={{ fontFamily: 'var(--font-serif)', fontStyle: 'italic', fontSize: 'clamp(1.6rem, 2.5vw, 2.2rem)', lineHeight: '1.1', fontWeight: 700 }}>
-                    {room.title}
-                  </h2>
+                <div className="genz-tag" style={{ backgroundColor: '#fef08a', color: '#854d0e', fontSize: '0.95rem', fontWeight: 900 }}>
+                  🪙 Coins: {coinsCollected}
                 </div>
-                <p style={{ fontSize: '0.95rem', opacity: 0.9, maxWidth: '520px', lineHeight: '1.55' }}>
-                  {room.description}
-                </p>
+                {hasShield && (
+                  <div className="genz-tag" style={{ backgroundColor: '#bae6fd', color: '#0369a1', fontSize: '0.95rem', fontWeight: 900 }}>
+                    🛡️ Shield Active!
+                  </div>
+                )}
               </div>
-              <span style={{ fontSize: '2rem', opacity: 0.3 }}>{cls.emoji}</span>
+
+              <div className="genz-tag" style={{ backgroundColor: 'rgba(0,0,0,0.6)', color: '#ffffff', fontSize: '0.85rem' }}>
+                High Score: {highScore}
+              </div>
             </div>
+
+            {/* Recent Voice Spell / Action Flash */}
+            {recentAction && (
+              <div style={{
+                position: 'absolute',
+                top: '64px',
+                left: '50%',
+                transform: 'translateX(-50%)',
+                backgroundColor: 'rgba(24, 24, 27, 0.85)',
+                color: '#facc15',
+                padding: '6px 16px',
+                borderRadius: '999px',
+                fontWeight: 900,
+                fontSize: '0.92rem',
+                border: '1.5px solid #facc15',
+                pointerEvents: 'none',
+                zIndex: 10
+              }}>
+                {recentAction}
+              </div>
+            )}
+
+            {/* Canvas */}
+            <canvas
+              ref={canvasRef}
+              width={800}
+              height={360}
+              style={{ width: '100%', height: 'auto', display: 'block', backgroundColor: '#090d16' }}
+            />
+
+            {/* Start / Game Over Modal Overlays */}
+            {gameState === 'idle' && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(15, 23, 42, 0.82)',
+                backdropFilter: 'blur(6px)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                textAlign: 'center',
+                padding: '24px'
+              }}>
+                <div style={{ fontSize: '3.5rem', marginBottom: '8px' }}>🚀</div>
+                <h2 style={{ fontSize: '2rem', fontWeight: 900, letterSpacing: '-0.03em', color: '#ffffff' }}>
+                  SCREAM RUNNER: SONIC BLAST
+                </h2>
+                <p style={{ color: '#cbd5e1', maxWidth: '440px', marginTop: '6px', fontSize: '0.95rem' }}>
+                  Your voice is your controller! <strong>Whisper</strong> to run, <strong>TALK / SHOUT</strong> to jump into the sky, and say <strong>"BLAST"</strong> to vaporize obstacles!
+                </p>
+
+                <button
+                  onClick={handleStartRunner}
+                  className="btn-brutal-green"
+                  style={{
+                    fontSize: '1.15rem',
+                    padding: '14px 32px',
+                    marginTop: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px'
+                  }}
+                >
+                  <Play size={20} />
+                  <span>START VOICE RUNNER</span>
+                </button>
+              </div>
+            )}
+
+            {gameState === 'gameover' && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                backgroundColor: 'rgba(15, 23, 42, 0.88)',
+                backdropFilter: 'blur(8px)',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                textAlign: 'center',
+                padding: '24px'
+              }}>
+                <div style={{ fontSize: '3rem', marginBottom: '6px' }}>💥</div>
+                <h2 style={{ fontSize: '2rem', fontWeight: 900, color: '#f87171' }}>
+                  CRASH! GAME OVER
+                </h2>
+                <div style={{ display: 'flex', gap: '16px', margin: '14px 0' }}>
+                  <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '10px 18px', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>DISTANCE SCORE</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#fde047' }}>{score}</div>
+                  </div>
+                  <div style={{ backgroundColor: 'rgba(255,255,255,0.1)', padding: '10px 18px', borderRadius: '12px' }}>
+                    <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>COINS</div>
+                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: '#38bdf8' }}>{coinsCollected}</div>
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleStartRunner}
+                  className="btn-brutal-green"
+                  style={{
+                    fontSize: '1.1rem',
+                    padding: '12px 28px',
+                    marginTop: '10px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <RotateCcw size={18} />
+                  <span>TRY AGAIN (SCREAM HARDER!)</span>
+                </button>
+              </div>
+            )}
           </div>
 
-          {/* Monster HP */}
-          {room.monster && (
-            <div style={{ padding: '16px 28px', borderBottom: '2px solid rgba(24,24,27,0.08)', backgroundColor: '#fafafa' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontWeight: 800, fontSize: '0.92rem' }}>{room.monster}</span>
-                <span className="genz-tag" style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>
-                  💀 {monsterHp}/{mHpMax} HP
-                </span>
+          {/* Right Info Card: Voice Controls Cheat Sheet */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div style={{
+              backgroundColor: '#ffffff',
+              borderRadius: '20px',
+              padding: '20px',
+              border: '2.5px solid var(--border-black)',
+              boxShadow: '4px 4px 0px var(--border-black)'
+            }}>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 900, color: '#18181b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Zap size={18} color="#eab308" />
+                <span>Voice Controls Guide</span>
+              </h3>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '16px' }}>
+                <div style={{ padding: '10px', backgroundColor: '#f0fdf4', borderRadius: '10px', border: '1.5px solid #86efac' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#166534' }}>🗣️ TALK / SHOUT LOUD</div>
+                  <div style={{ fontSize: '0.78rem', color: '#15803d', marginTop: '2px' }}>
+                    Speak up or yell to launch high into the air and clear spikes!
+                  </div>
+                </div>
+
+                <div style={{ padding: '10px', backgroundColor: '#eff6ff', borderRadius: '10px', border: '1.5px solid #93c5fd' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#1e40af' }}>💥 Say "BLAST" or "FIRE"</div>
+                  <div style={{ fontSize: '0.78rem', color: '#1d4ed8', marginTop: '2px' }}>
+                    Fires a giant screen-clearing laser cannon that destroys obstacles!
+                  </div>
+                </div>
+
+                <div style={{ padding: '10px', backgroundColor: '#faf5ff', borderRadius: '10px', border: '1.5px solid #d8b4fe' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#6b21a8' }}>🦘 Say "JUMP"</div>
+                  <div style={{ fontSize: '0.78rem', color: '#7e22ce', marginTop: '2px' }}>
+                    Performs an instant acrobatic high-spring leap!
+                  </div>
+                </div>
+
+                <div style={{ padding: '10px', backgroundColor: '#fffbeb', borderRadius: '10px', border: '1.5px solid #fde68a' }}>
+                  <div style={{ fontWeight: 800, fontSize: '0.86rem', color: '#92400e' }}>🛡️ Say "SHIELD"</div>
+                  <div style={{ fontSize: '0.78rem', color: '#b45309', marginTop: '2px' }}>
+                    Deploys an energy bubble to absorb 1 crash impact!
+                  </div>
+                </div>
               </div>
-              <HpBar current={monsterHp} max={mHpMax} color="#ef4444" />
+            </div>
+
+            {/* Live Transcript Bubble */}
+            <div style={{
+              backgroundColor: '#f8fafc',
+              borderRadius: '16px',
+              padding: '16px',
+              border: '2px solid var(--border-black)',
+              boxShadow: '3px 3px 0px var(--border-black)'
+            }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: 800, textTransform: 'uppercase', color: '#64748b' }}>
+                Heard Voice Input
+              </div>
+              <div style={{
+                fontSize: '1rem',
+                fontWeight: 700,
+                color: lastSpokenCommand ? '#059669' : '#94a3b8',
+                marginTop: '4px',
+                minHeight: '28px'
+              }}>
+                {lastSpokenCommand ? `"${lastSpokenCommand}"` : '(Waiting for your voice...)'}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          MODE 2 VIEW: TICKING BOMB PARTY DUEL
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {activeMode === 'bomb' && (
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '24px',
+          border: '3px solid var(--border-black)',
+          boxShadow: '6px 6px 0px var(--border-black)',
+          padding: '36px',
+          textAlign: 'center',
+          maxWidth: '820px',
+          margin: '0 auto'
+        }}>
+          {bombState === 'idle' && (
+            <div>
+              <div style={{ fontSize: '4.5rem', marginBottom: '12px' }}>💣</div>
+              <h2 style={{ fontSize: '2.4rem', fontWeight: 900, color: '#18181b', letterSpacing: '-0.04em' }}>
+                TICKING VOICE BOMB: PARTY DUEL
+              </h2>
+              <p style={{ color: '#4b5563', fontSize: '1.05rem', maxWidth: '520px', margin: '10px auto 24px' }}>
+                Can you beat the 10-second fuse? Speak or shout funny answers into your mic to defuse 10 rounds of ticking bombs before they blow up!
+              </p>
+              <button
+                onClick={handleStartBomb}
+                className="btn-brutal-green"
+                style={{ fontSize: '1.2rem', padding: '14px 36px' }}
+              >
+                START DEFUSING THE BOMB!
+              </button>
             </div>
           )}
 
-          {/* The Voice Command Challenge */}
-          <div style={{ flex: 1, padding: '24px 28px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', textAlign: 'center', gap: '16px' }}>
-            <div style={{ fontSize: '0.82rem', fontWeight: 800, color: '#6b21a8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-              🎙️ Speak the magic word to defeat the guardian:
-            </div>
-            <div style={{
-              background: 'linear-gradient(135deg, var(--accent-lilac-soft), #f3e8ff)',
-              border: '3px solid var(--border-black)',
-              borderRadius: '20px',
-              padding: '20px 40px',
-              boxShadow: '6px 6px 0px var(--border-black)',
-              position: 'relative',
-            }}>
-              <div style={{ fontSize: 'clamp(2rem, 4vw, 3rem)', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--text-main)', letterSpacing: '0.04em' }}>
-                "{room.challenge}"
+          {bombState === 'playing' && (
+            <div>
+              {/* Bomb Progress & Score */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                <span className="genz-tag tag-cyan">Round {bombIndex + 1} of {BOMB_PROMPTS.length}</span>
+                <span className="genz-tag tag-yellow">Score: {bombScore} pts</span>
               </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '6px', fontWeight: 700 }}>
-                (or any of: {room.triggerWords.slice(0, 4).join(', ')}...)
-              </div>
-            </div>
 
-            {/* Loot preview */}
-            <div style={{ fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-              🎁 Reward for this room: <strong style={{ color: 'var(--text-main)' }}>{room.loot}</strong> + {room.xp} XP
-            </div>
-          </div>
-
-          {/* Bottom: Live mic status */}
-          <div style={{ padding: '14px 28px', borderTop: '2px solid rgba(24,24,27,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fafafa' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: isListening ? '#22c55e' : '#94a3b8', boxShadow: isListening ? '0 0 8px #22c55e' : 'none', animation: isListening ? 'pulse 1.5s infinite' : 'none' }} />
-              <span style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-muted)' }}>
-                {isListening ? `Listening: "${lastSpokenCommand || '...'}"` : 'Mic off — click Start Voice'}
-              </span>
-            </div>
-            {!isListening && (
-              <button onClick={onStartMic} className="btn-brutal-lilac" style={{ padding: '6px 14px', fontSize: '0.82rem' }}>
-                <Mic size={14} /> Start Voice
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Right: Inventory + Log + Hint */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-
-          {/* Inventory */}
-          <div className="genz-card" style={{ padding: '20px' }}>
-            <h3 style={{ fontWeight: 900, fontSize: '0.95rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Star size={16} color="#f59e0b" /> Inventory ({inventory.length})
-            </h3>
-            {inventory.length === 0 ? (
-              <p style={{ fontSize: '0.84rem', color: 'var(--text-muted)', fontWeight: 600 }}>No items yet. Speak to claim your first loot!</p>
-            ) : (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {inventory.map((item, i) => (
-                  <span key={i} className="genz-tag" style={{ backgroundColor: 'var(--accent-yellow)', fontSize: '0.88rem', padding: '5px 12px' }}>{item}</span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Upcoming rooms preview */}
-          <div className="genz-card" style={{ padding: '20px' }}>
-            <h3 style={{ fontWeight: 900, fontSize: '0.95rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <ChevronRight size={16} /> Next Realms
-            </h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {ROOMS.slice(roomIndex, Math.min(roomIndex + 3, ROOMS.length)).map((r, i) => (
-                <div key={r.id} style={{
-                  display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 12px',
-                  borderRadius: '10px', border: '1.5px solid var(--border-black)',
-                  backgroundColor: i === 0 ? 'var(--accent-lilac-soft)' : '#f8fafc',
-                  boxShadow: i === 0 ? '2px 2px 0px var(--border-black)' : 'none',
+              {/* Big Animated Bomb Graphic with Sizzling Timer */}
+              <div style={{ position: 'relative', display: 'inline-block', marginBottom: '20px' }}>
+                <div style={{
+                  fontSize: '6rem',
+                  transform: bombTimeLeft <= 3 ? 'scale(1.15)' : 'scale(1)',
+                  transition: 'transform 0.15s ease'
                 }}>
-                  <span style={{ fontSize: '1.2rem' }}>{r.emoji}</span>
-                  <div>
-                    <div style={{ fontSize: '0.82rem', fontWeight: 800 }}>{r.title}</div>
-                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700 }}>{r.loot} • +{r.xp} XP</div>
-                  </div>
-                  {i === 0 && <span className="genz-tag" style={{ backgroundColor: 'var(--accent-lilac)', marginLeft: 'auto', fontSize: '0.7rem' }}>NOW</span>}
+                  💣
                 </div>
-              ))}
+
+                <div style={{
+                  position: 'absolute',
+                  top: '55%',
+                  left: '50%',
+                  transform: 'translate(-50%, -50%)',
+                  backgroundColor: bombTimeLeft <= 3 ? '#ef4444' : '#18181b',
+                  color: '#ffffff',
+                  borderRadius: '50%',
+                  width: '54px',
+                  height: '54px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '1.5rem',
+                  fontWeight: 900,
+                  border: '3px solid #ffffff'
+                }}>
+                  {bombTimeLeft}s
+                </div>
+              </div>
+
+              {/* Current Prompt */}
+              <div style={{
+                backgroundColor: '#fef3c7',
+                border: '2.5px solid var(--border-black)',
+                borderRadius: '16px',
+                padding: '20px',
+                maxWidth: '640px',
+                margin: '0 auto 20px'
+              }}>
+                <div style={{ fontSize: '1.35rem', fontWeight: 900, color: '#92400e' }}>
+                  {currentPrompt.instruction}
+                </div>
+                <div style={{ fontSize: '0.88rem', color: '#b45309', marginTop: '6px', fontWeight: 600 }}>
+                  💡 Hint: {currentPrompt.hint}
+                </div>
+              </div>
+
+              {/* Success Banner */}
+              {bombSuccessText && (
+                <div style={{
+                  backgroundColor: '#dcfce7',
+                  border: '2px solid #22c55e',
+                  color: '#15803d',
+                  padding: '10px 20px',
+                  borderRadius: '12px',
+                  fontWeight: 900,
+                  fontSize: '1.1rem',
+                  marginBottom: '16px'
+                }}>
+                  {bombSuccessText}
+                </div>
+              )}
+
+              {/* Live Speech Feedback */}
+              <div style={{ fontSize: '0.92rem', color: '#6b7280', fontWeight: 600 }}>
+                Mic Detected: <span style={{ color: '#18181b', fontWeight: 800 }}>"{lastSpokenCommand || '...'}"</span>
+              </div>
+            </div>
+          )}
+
+          {bombState === 'defused' && (
+            <div>
+              <div style={{ fontSize: '4.5rem', marginBottom: '12px' }}>👑</div>
+              <h2 style={{ fontSize: '2.4rem', fontWeight: 900, color: '#15803d' }}>
+                BOMB SQUAD CHAMPION!
+              </h2>
+              <p style={{ color: '#4b5563', fontSize: '1.1rem', margin: '8px auto 20px' }}>
+                Incredible! You defused all 10 voice bombs with lightning reflexes!
+              </p>
+              <div style={{ fontSize: '2rem', fontWeight: 900, color: '#eab308', marginBottom: '24px' }}>
+                Final Score: {bombScore}
+              </div>
+              <button onClick={handleStartBomb} className="btn-brutal-green" style={{ fontSize: '1.1rem', padding: '12px 30px' }}>
+                PLAY AGAIN
+              </button>
+            </div>
+          )}
+
+          {bombState === 'exploded' && (
+            <div>
+              <div style={{ fontSize: '4.5rem', marginBottom: '12px' }}>💥</div>
+              <h2 style={{ fontSize: '2.4rem', fontWeight: 900, color: '#dc2626' }}>
+                KABOOM! TIME EXPIRED!
+              </h2>
+              <p style={{ color: '#4b5563', fontSize: '1.05rem', margin: '8px auto 20px' }}>
+                The fuse burned down! Speak faster next time!
+              </p>
+              <div style={{ fontSize: '1.5rem', fontWeight: 900, color: '#18181b', marginBottom: '24px' }}>
+                Score: {bombScore}
+              </div>
+              <button onClick={handleStartBomb} className="btn-brutal-green" style={{ fontSize: '1.1rem', padding: '12px 30px' }}>
+                TRY AGAIN
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ═══════════════════════════════════════════════════════════════════
+          MODE 3 VIEW: VOCAL DECIBEL CANNON
+      ═══════════════════════════════════════════════════════════════════════ */}
+      {activeMode === 'target' && (
+        <div style={{
+          backgroundColor: '#ffffff',
+          borderRadius: '24px',
+          border: '3px solid var(--border-black)',
+          boxShadow: '6px 6px 0px var(--border-black)',
+          padding: '36px',
+          textAlign: 'center',
+          maxWidth: '820px',
+          margin: '0 auto'
+        }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <span className="genz-tag tag-cyan">👾 Aliens Blasted: {aliensDestroyed}</span>
+            <span className="genz-tag tag-yellow">Score: {targetScore}</span>
+          </div>
+
+          <div style={{ fontSize: '4.5rem', marginBottom: '12px' }}>🛸</div>
+          <h2 style={{ fontSize: '2.2rem', fontWeight: 900, color: '#18181b', letterSpacing: '-0.03em' }}>
+            VOCAL DECIBEL CANNON
+          </h2>
+          <p style={{ color: '#4b5563', fontSize: '1rem', maxWidth: '520px', margin: '8px auto 24px' }}>
+            Modulate your voice volume! Hold your voice inside the target green zone to charge up the sonic laser and destroy the alien saucer!
+          </p>
+
+          {/* Target Zone Bar */}
+          <div style={{
+            position: 'relative',
+            height: '48px',
+            backgroundColor: '#f1f5f9',
+            borderRadius: '16px',
+            border: '3px solid var(--border-black)',
+            overflow: 'hidden',
+            margin: '0 auto 20px',
+            maxWidth: '600px'
+          }}>
+            {/* Target Green Zone */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: `${targetZone.min}%`,
+              width: `${targetZone.max - targetZone.min}%`,
+              backgroundColor: '#bbf7d0',
+              borderLeft: '2px dashed #16a34a',
+              borderRight: '2px dashed #16a34a',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              fontSize: '0.85rem',
+              color: '#166534'
+            }}>
+              TARGET ZONE ({targetZone.min}% - {targetZone.max}%)
+            </div>
+
+            {/* Live Voice Indicator Needle */}
+            <div style={{
+              position: 'absolute',
+              top: 0,
+              bottom: 0,
+              left: `${effectiveVol}%`,
+              width: '8px',
+              backgroundColor: '#dc2626',
+              boxShadow: '0 0 10px #ef4444',
+              transform: 'translateX(-50%)',
+              transition: 'left 0.05s ease'
+            }} />
+          </div>
+
+          {/* Cannon Charge Progress Bar */}
+          <div style={{ maxWidth: '600px', margin: '0 auto 24px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', fontWeight: 800, marginBottom: '6px' }}>
+              <span>Laser Charge:</span>
+              <span>{targetHoldTime}%</span>
+            </div>
+            <div style={{ height: '16px', backgroundColor: '#e2e8f0', borderRadius: '8px', overflow: 'hidden', border: '2px solid var(--border-black)' }}>
+              <div style={{
+                height: '100%',
+                width: `${targetHoldTime}%`,
+                backgroundColor: '#38bdf8',
+                transition: 'width 0.08s linear'
+              }} />
             </div>
           </div>
 
-          {/* Battle log */}
-          <div className="genz-card" style={{ padding: '20px', flex: 1 }}>
-            <h3 style={{ fontWeight: 900, fontSize: '0.95rem', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <Scroll size={16} /> Battle Log
-            </h3>
-            <div style={{
-              backgroundColor: '#111827', borderRadius: '10px', padding: '14px',
-              border: '2px solid var(--border-black)', boxShadow: '2px 2px 0px var(--border-black)',
-              fontFamily: 'var(--font-mono)', fontSize: '0.8rem', lineHeight: '1.7',
-              color: '#a7f3d0', maxHeight: '180px', overflowY: 'auto', display: 'flex',
-              flexDirection: 'column', gap: '2px',
-            }}>
-              {log.map((line, i) => (
-                <div key={i} style={{ color: line.startsWith('✅') ? '#86efac' : line.startsWith('❌') ? '#fca5a5' : '#a7f3d0' }}>
-                  <span style={{ color: '#4b5563' }}>{'>'} </span>{line}
-                </div>
-              ))}
-            </div>
+          <div style={{ fontSize: '1rem', fontWeight: 800, color: effectiveVol >= targetZone.min && effectiveVol <= targetZone.max ? '#16a34a' : '#9ca3af' }}>
+            {effectiveVol >= targetZone.min && effectiveVol <= targetZone.max ? '⚡ CHARGING LASER BEAM!' : 'Adjust voice volume into the target zone!'}
           </div>
         </div>
-      </div>
-
-      <style>{`
-        @keyframes shakeAnim {
-          0%,100% { transform: translateX(0); }
-          20% { transform: translateX(-8px); }
-          40% { transform: translateX(8px); }
-          60% { transform: translateX(-5px); }
-          80% { transform: translateX(5px); }
-        }
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
+      )}
     </div>
   );
 };

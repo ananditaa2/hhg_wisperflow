@@ -39,17 +39,17 @@ const INITIAL_TASKS: AutomationTask[] = [
     ]
   },
   {
-    id: 'api-docs',
-    name: 'Generate Typed OpenAPI & SDKs',
-    voiceTrigger: 'Wispr, generate typescript API client from schema',
+    id: 'party-mode',
+    name: 'Trigger Neon Cyberpunk Party Visuals',
+    voiceTrigger: 'Wispr, start cyber disco party lights',
     status: 'idle',
-    duration: '1.1s',
+    duration: '1.2s',
     category: 'ai',
     logs: [
-      '[PARSER] Reading route handlers from src/api/*.ts',
-      '[GEN] Generated openapi-spec.v3.json',
-      '[TYPES] Emitted strict TypeScript interfaces and axios client wrappers',
-      '[DONE] Exported SDK package ready for consumption'
+      '[AUDIO] Audio spectrum visualizer calibrated to 128 BPM',
+      '[LIGHTS] Triggered RGB neon strobe cycles',
+      '[CONFETTI] Golden confetti cannons armed',
+      '[VIBES] Cyberpunk Goa party atmosphere activated'
     ]
   },
   {
@@ -76,8 +76,8 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
 }) => {
   const [tasks, setTasks] = useState<AutomationTask[]>(INITIAL_TASKS);
   const [activeTaskLogs, setActiveTaskLogs] = useState<string[]>([
-    "Wispr Automation Daemon online.",
-    "Speak a command (e.g. 'Deploy', 'Audit', 'API', 'Docker') or click trigger."
+    "Wispr Voice Trigger Engine online.",
+    "Speak a command (e.g. 'Deploy', 'Audit', 'Party', 'Docker') or click trigger."
   ]);
   const [runningTaskId, setRunningTaskId] = useState<string | null>(null);
 
@@ -161,7 +161,7 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({
             gap: '6px'
           }}>
             <span>🎙️</span>
-            <span>Say &quot;Deploy&quot;, &quot;Audit&quot;, &quot;API&quot;, or &quot;Docker&quot;</span>
+            <span>Say &quot;Deploy&quot;, &quot;Audit&quot;, &quot;Party&quot;, or &quot;Docker&quot;</span>
           </div>
 
           <button onClick={resetAll} className="btn-brutal-white" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>

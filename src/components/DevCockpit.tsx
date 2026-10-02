@@ -26,9 +26,9 @@ const NORMALIZATION_SAMPLES: NormalizationSample[] = [
     code: "export function dedupeAndSort(items: number[]): number[] {\n  return Array.from(new Set(items)).sort((a, b) => a - b);\n}"
   },
   {
-    raw: "we need an express middleware that checks the bearer token in headers and rejects with 401 if missing",
-    normalized: "Implement Express authentication middleware verifying JWT Bearer token with RFC 6750 401 response and claim extraction.",
-    code: "export const authMiddleware = (req: Request, res: Response, next: NextFunction) => {\n  const token = req.headers.authorization?.split(' ')[1];\n  if (!token) return res.status(401).json({ error: 'Unauthorized' });\n  next();\n};"
+    raw: "create a glowing animated gradient button that triggers confetti on click",
+    normalized: "Build an interactive neo-brutalist call-to-action button with animated rainbow border and multi-colored particle bursts on click.",
+    code: "export const GlowButton = ({ label, onClick }: { label: string; onClick: () => void }) => {\n  return (\n    <button className=\"btn-glow-pulse\" onClick={onClick}>\n      <span>{label}</span>\n    </button>\n  );\n};"
   },
   {
     raw: "build a react hook that monitors window resize and returns the current viewport width and height debounce it",
@@ -198,7 +198,7 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
               ) : (
                 <span style={{ color: '#94a3b8' }}>
                   {isListening 
-                    ? '🎙️ Speak freely into your microphone (e.g. "Build an API route with JWT auth and rate limiting")...' 
+                    ? '🎙️ Speak freely into your microphone (e.g. "Create a glowing card with smooth hover animations")...' 
                     : 'Click "Launch Voice Telemetry" above or click a demo sample below to see speech-to-intent in action.'}
                 </span>
               )}

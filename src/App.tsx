@@ -10,7 +10,7 @@ import { ActiveTab } from './types';
 import { Sparkles, ExternalLink, Heart } from 'lucide-react';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('cockpit');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('game');
 
   const {
     isActive,
