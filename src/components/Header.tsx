@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Sparkles, Terminal, Gamepad2, PlayCircle, Network, ExternalLink, HelpCircle } from 'lucide-react';
+import { Mic, MicOff, ExternalLink, ChevronRight, Activity, Gamepad2, PlayCircle, Network } from 'lucide-react';
 import { ActiveTab, TelemetryData } from '../types';
 
 interface HeaderProps {
@@ -8,7 +8,6 @@ interface HeaderProps {
   isListening: boolean;
   onToggleMic: () => void;
   telemetry: TelemetryData;
-  onOpenGuide: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -16,208 +15,199 @@ export const Header: React.FC<HeaderProps> = ({
   setActiveTab,
   isListening,
   onToggleMic,
-  telemetry,
-  onOpenGuide
+  telemetry
 }) => {
   return (
-    <header style={{
-      borderBottom: '1px solid var(--border-subtle)',
-      backgroundColor: 'rgba(8, 9, 13, 0.85)',
-      backdropFilter: 'blur(20px)',
-      position: 'sticky',
-      top: 0,
-      zIndex: 50,
-      padding: '12px 24px'
-    }}>
+    <div style={{ position: 'sticky', top: 0, zIndex: 60 }}>
+      {/* 1. Top Announcement Bar (Matches Screenshot) */}
       <div style={{
-        maxWidth: '1400px',
-        margin: '0 auto',
+        backgroundColor: 'var(--bg-banner)',
+        color: '#ffffff',
+        padding: '9px 16px',
+        textAlign: 'center',
+        fontSize: '0.84rem',
+        fontWeight: 500,
+        letterSpacing: '0.01em',
         display: 'flex',
         alignItems: 'center',
-        justifyContent: 'space-between',
-        flexWrap: 'wrap',
-        gap: '16px'
+        justifyContent: 'center',
+        gap: '6px'
       }}>
-        {/* Brand & Referral Attribution */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '12px',
-            background: 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)',
-            display: 'flex',
+        <span>Wispr Flow Developer Suite is now active for Goa Hacker House.</span>
+        <a
+          href="https://ref.wisprflow.ai/hhg"
+          target="_blank"
+          rel="noreferrer"
+          style={{
+            color: '#ffffff',
+            fontWeight: 600,
+            textDecoration: 'underline',
+            textUnderlineOffset: '3px',
+            display: 'inline-flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 0 20px -3px rgba(139, 92, 246, 0.6)'
-          }}>
-            <Sparkles size={22} color="#ffffff" />
-          </div>
-          <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <h1 style={{ fontSize: '1.25rem', fontWeight: 800, letterSpacing: '-0.02em' }}>
-                WISPR<span style={{ color: 'var(--accent-purple)' }}>VERSE</span>
-              </h1>
-              <span className="mono-badge" style={{ color: 'var(--accent-cyan)', borderColor: 'rgba(6,182,212,0.3)' }}>
-                v1.0 • VOICE-OS
-              </span>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-              <span>Verified Account via</span>
-              <a 
-                href="https://ref.wisprflow.ai/hhg" 
-                target="_blank" 
-                rel="noreferrer" 
-                style={{ 
-                  color: '#a78bfa', 
-                  textDecoration: 'none', 
-                  fontWeight: 600,
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '2px'
-                }}
-              >
-                ref.wisprflow.ai/hhg <ExternalLink size={10} />
-              </a>
-            </div>
-          </div>
-        </div>
-
-        {/* 4 Pillars Tab Navigation */}
-        <nav style={{
-          display: 'flex',
-          backgroundColor: 'rgba(255, 255, 255, 0.04)',
-          borderRadius: '12px',
-          padding: '4px',
-          border: '1px solid var(--border-subtle)'
-        }}>
-          <button
-            onClick={() => setActiveTab('cockpit')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: 'none',
-              background: activeTab === 'cockpit' ? 'linear-gradient(135deg, rgba(139, 92, 246, 0.3), rgba(139, 92, 246, 0.15))' : 'transparent',
-              color: activeTab === 'cockpit' ? '#fff' : 'var(--text-secondary)',
-              fontWeight: activeTab === 'cockpit' ? 600 : 400,
-              cursor: 'pointer',
-              borderBottom: activeTab === 'cockpit' ? '2px solid var(--accent-purple)' : '2px solid transparent',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <Terminal size={16} color={activeTab === 'cockpit' ? '#c4b5fd' : '#94a3b8'} />
-            <span>1. Dev HUD (Tool)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('game')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: 'none',
-              background: activeTab === 'game' ? 'linear-gradient(135deg, rgba(6, 182, 212, 0.3), rgba(6, 182, 212, 0.15))' : 'transparent',
-              color: activeTab === 'game' ? '#fff' : 'var(--text-secondary)',
-              fontWeight: activeTab === 'game' ? 600 : 400,
-              cursor: 'pointer',
-              borderBottom: activeTab === 'game' ? '2px solid var(--accent-cyan)' : '2px solid transparent',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <Gamepad2 size={16} color={activeTab === 'game' ? '#67e8f9' : '#94a3b8'} />
-            <span>2. Sonic Jump (Game)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('automations')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: 'none',
-              background: activeTab === 'automations' ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(16, 185, 129, 0.15))' : 'transparent',
-              color: activeTab === 'automations' ? '#fff' : 'var(--text-secondary)',
-              fontWeight: activeTab === 'automations' ? 600 : 400,
-              cursor: 'pointer',
-              borderBottom: activeTab === 'automations' ? '2px solid var(--accent-green)' : '2px solid transparent',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <PlayCircle size={16} color={activeTab === 'automations' ? '#6ee7b7' : '#94a3b8'} />
-            <span>3. Automations</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('canvas')}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
-              borderRadius: '8px',
-              border: 'none',
-              background: activeTab === 'canvas' ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.3), rgba(245, 158, 11, 0.15))' : 'transparent',
-              color: activeTab === 'canvas' ? '#fff' : 'var(--text-secondary)',
-              fontWeight: activeTab === 'canvas' ? 600 : 400,
-              cursor: 'pointer',
-              borderBottom: activeTab === 'canvas' ? '2px solid var(--accent-amber)' : '2px solid transparent',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            <Network size={16} color={activeTab === 'canvas' ? '#fcd34d' : '#94a3b8'} />
-            <span>4. Voice Canvas</span>
-          </button>
-        </nav>
-
-        {/* Global Controls & Wispr Status */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Guide / Script Button */}
-          <button
-            onClick={onOpenGuide}
-            className="btn-secondary"
-            style={{ padding: '8px 12px', fontSize: '0.85rem' }}
-            title="Video Script & Wispr Flow Instructions"
-          >
-            <HelpCircle size={15} />
-            <span>Demo Blueprint</span>
-          </button>
-
-          {/* Wispr Flow Capsule indicator */}
-          <div className="wispr-capsule">
-            <span className="pulse-dot" style={{ backgroundColor: isListening ? '#10b981' : '#64748b' }}></span>
-            <span>{isListening ? `${telemetry.currentWpm} WPM Flow` : 'Wispr Flow Ready'}</span>
-          </div>
-
-          {/* Mic Toggle Button */}
-          <button
-            onClick={onToggleMic}
-            className={isListening ? 'btn-primary' : 'btn-secondary'}
-            style={{
-              padding: '8px 16px',
-              background: isListening ? 'linear-gradient(135deg, #10b981, #059669)' : undefined,
-              borderColor: isListening ? '#10b981' : undefined
-            }}
-          >
-            {isListening ? (
-              <>
-                <Mic size={16} />
-                <span>Live Audio ON</span>
-              </>
-            ) : (
-              <>
-                <MicOff size={16} />
-                <span>Start Audio</span>
-              </>
-            )}
-          </button>
-        </div>
+            marginLeft: '4px'
+          }}
+        >
+          Verify referral: ref.wisprflow.ai/hhg <ChevronRight size={14} />
+        </a>
       </div>
-    </header>
+
+      {/* 2. Floating Navbar (Matches Screenshot) */}
+      <div style={{ padding: '12px 20px', backgroundColor: 'rgba(250, 248, 240, 0.95)', backdropFilter: 'blur(10px)' }}>
+        <header style={{
+          maxWidth: '1280px',
+          margin: '0 auto',
+          backgroundColor: '#ffffff',
+          borderRadius: '16px',
+          border: '1px solid rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 2px 14px -2px rgba(0, 0, 0, 0.04)',
+          padding: '8px 16px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          flexWrap: 'wrap',
+          gap: '12px'
+        }}>
+          {/* Logo (Wispr Waveform + Flow) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '2.5px', height: '18px' }}>
+              <div style={{ width: '3px', height: '10px', backgroundColor: '#111827', borderRadius: '2px' }} />
+              <div style={{ width: '3px', height: '18px', backgroundColor: '#111827', borderRadius: '2px' }} />
+              <div style={{ width: '3px', height: '14px', backgroundColor: '#111827', borderRadius: '2px' }} />
+              <div style={{ width: '3px', height: '8px', backgroundColor: '#111827', borderRadius: '2px' }} />
+            </div>
+            <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#111827', letterSpacing: '-0.03em' }}>
+              Flow
+            </span>
+            <span className="mono-tag" style={{ marginLeft: '4px', fontSize: '0.7rem' }}>
+              DEV-EDITION
+            </span>
+          </div>
+
+          {/* Center Pill Switcher (Matches [ Dictation | Notetaker ] style) */}
+          <nav style={{
+            display: 'flex',
+            backgroundColor: '#ece8db',
+            borderRadius: '9999px',
+            padding: '4px',
+            gap: '2px'
+          }}>
+            <button
+              onClick={() => setActiveTab('cockpit')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: '9999px',
+                border: 'none',
+                backgroundColor: activeTab === 'cockpit' ? '#ffffff' : 'transparent',
+                color: activeTab === 'cockpit' ? '#111827' : '#6b7280',
+                fontWeight: activeTab === 'cockpit' ? 600 : 500,
+                fontSize: '0.84rem',
+                cursor: 'pointer',
+                boxShadow: activeTab === 'cockpit' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Activity size={14} />
+              <span>Dev HUD</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('game')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: '9999px',
+                border: 'none',
+                backgroundColor: activeTab === 'game' ? '#ffffff' : 'transparent',
+                color: activeTab === 'game' ? '#111827' : '#6b7280',
+                fontWeight: activeTab === 'game' ? 600 : 500,
+                fontSize: '0.84rem',
+                cursor: 'pointer',
+                boxShadow: activeTab === 'game' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Gamepad2 size={14} />
+              <span>Sonic Game</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('automations')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: '9999px',
+                border: 'none',
+                backgroundColor: activeTab === 'automations' ? '#ffffff' : 'transparent',
+                color: activeTab === 'automations' ? '#111827' : '#6b7280',
+                fontWeight: activeTab === 'automations' ? 600 : 500,
+                fontSize: '0.84rem',
+                cursor: 'pointer',
+                boxShadow: activeTab === 'automations' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <PlayCircle size={14} />
+              <span>Automations</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('canvas')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                padding: '6px 14px',
+                borderRadius: '9999px',
+                border: 'none',
+                backgroundColor: activeTab === 'canvas' ? '#ffffff' : 'transparent',
+                color: activeTab === 'canvas' ? '#111827' : '#6b7280',
+                fontWeight: activeTab === 'canvas' ? 600 : 500,
+                fontSize: '0.84rem',
+                cursor: 'pointer',
+                boxShadow: activeTab === 'canvas' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <Network size={14} />
+              <span>Architecture</span>
+            </button>
+          </nav>
+
+          {/* Right Action: Lilac Button (Matches Screenshot [Get started on Windows]) */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            {/* Status indicator */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: '#6b7280' }}>
+              <div style={{
+                width: '7px',
+                height: '7px',
+                borderRadius: '50%',
+                backgroundColor: isListening ? '#10b981' : '#9ca3af'
+              }} />
+              <span>{isListening ? `${telemetry.currentWpm} WPM Flow` : 'Ready'}</span>
+            </div>
+
+            {/* Signature Lilac CTA Button */}
+            <button
+              onClick={onToggleMic}
+              className="btn-wispr-lilac"
+              style={{
+                backgroundColor: isListening ? '#bbf7d0' : 'var(--accent-lilac)'
+              }}
+            >
+              {isListening ? <Mic size={15} /> : <MicOff size={15} />}
+              <span>{isListening ? 'Mute Microphone' : 'Start Voice Input'}</span>
+            </button>
+          </div>
+        </header>
+      </div>
+    </div>
   );
 };

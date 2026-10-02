@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { PlayCircle, CheckCircle2, AlertCircle, Loader2, Terminal, Shield, Rocket, FileCode2, Container, RefreshCw } from 'lucide-react';
+import { PlayCircle, CheckCircle2, Loader2, Terminal, Shield, Rocket, FileCode2, RefreshCw } from 'lucide-react';
 import { AutomationTask } from '../types';
 
 interface WorkflowAutomationsProps {
@@ -23,7 +23,7 @@ const INITIAL_TASKS: AutomationTask[] = [
   },
   {
     id: 'sec-audit',
-    name: 'Zero-Day Security & Vulnerability Scan',
+    name: 'Security & Dependency Scan',
     voiceTrigger: 'Wispr, run comprehensive security audit',
     status: 'idle',
     duration: '1.8s',
@@ -79,7 +79,6 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({ playTo
     setRunningTaskId(task.id);
     playTone(550, 'sine', 0.15);
 
-    // Update status to running
     setTasks(prev => prev.map(t => t.id === task.id ? { ...t, status: 'running' } : t));
     setActiveTaskLogs([`[TRIGGER] Spoken command received: "${task.voiceTrigger}"`]);
 
@@ -106,30 +105,27 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({ playTo
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Pillar Banner */}
-      <div className="glass-panel" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '28px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
+      {/* Header */}
+      <div className="wispr-card" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <span className="mono-badge" style={{ color: 'var(--accent-green)', borderColor: 'rgba(16,185,129,0.3)' }}>
-              PILLAR 3: VOICE AUTOMATIONS
-            </span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Hands-Free DevOps & CLI Pipeline</span>
+          <div className="eyebrow-text" style={{ marginBottom: '8px' }}>
+            PILLAR 3: VOICE AUTOMATIONS
           </div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '6px' }} className="gradient-text">
+          <h2 className="serif-headline" style={{ fontSize: '2rem', marginBottom: '6px' }}>
             Spoken Pipeline Orchestrator
           </h2>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: '650px', fontSize: '0.95rem' }}>
-            Trigger mission-critical developer workflows with natural speech. Speak a macro into Wispr Flow, and watch the automated pipeline orchestrate testing, deployment, and security scans.
+          <p style={{ color: 'var(--text-secondary)', maxWidth: '620px', fontSize: '0.95rem' }}>
+            Trigger mission-critical developer workflows with natural speech. Speak a macro into Wispr Flow to orchestrate testing, deployment, and security scans.
           </p>
         </div>
 
-        <button onClick={resetAll} className="btn-secondary" style={{ padding: '8px 14px', fontSize: '0.85rem' }}>
+        <button onClick={resetAll} className="btn-wispr-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
           <RefreshCw size={14} /> Reset Workflows
         </button>
       </div>
 
-      {/* Interactive Command Grid */}
+      {/* Grid */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
@@ -142,75 +138,68 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({ playTo
           return (
             <div
               key={task.id}
-              className="glass-panel"
+              className="wispr-card"
               style={{
                 padding: '20px',
                 display: 'flex',
                 flexDirection: 'column',
                 justifyContent: 'space-between',
-                borderColor: isRunning ? 'var(--accent-green)' : isSuccess ? 'rgba(16,185,129,0.3)' : undefined,
-                boxShadow: isRunning ? '0 0 20px -5px rgba(16,185,129,0.3)' : undefined
+                borderColor: isRunning ? 'var(--accent-forest)' : isSuccess ? '#059669' : undefined,
+                borderWidth: (isRunning || isSuccess) ? '1.5px' : '1px'
               }}
             >
               <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    {task.category === 'deployment' && <Rocket size={18} color="var(--accent-purple)" />}
-                    {task.category === 'security' && <Shield size={18} color="var(--accent-cyan)" />}
-                    {task.category === 'ai' && <FileCode2 size={18} color="var(--accent-amber)" />}
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>{task.name}</h3>
+                    {task.category === 'deployment' && <Rocket size={17} color="#093c31" />}
+                    {task.category === 'security' && <Shield size={17} color="#0284c7" />}
+                    {task.category === 'ai' && <FileCode2 size={17} color="#7c3aed" />}
+                    <h3 style={{ fontSize: '0.98rem', fontWeight: 700 }}>{task.name}</h3>
                   </div>
 
-                  <span className="mono-badge" style={{
-                    color: isRunning ? 'var(--accent-green)' : isSuccess ? '#10b981' : 'var(--text-muted)',
-                    borderColor: isRunning ? 'var(--accent-green)' : undefined
+                  <span className="mono-tag" style={{
+                    backgroundColor: isRunning ? '#ecfdf5' : isSuccess ? '#dcfce7' : undefined,
+                    color: isRunning ? '#047857' : isSuccess ? '#15803d' : undefined
                   }}>
                     {isRunning ? 'RUNNING' : isSuccess ? 'COMPLETE' : 'STANDBY'}
                   </span>
                 </div>
 
-                {/* Spoken Voice Trigger Quote */}
                 <div style={{
-                  backgroundColor: 'rgba(0,0,0,0.35)',
+                  backgroundColor: '#faf8f0',
                   padding: '10px 12px',
                   borderRadius: '8px',
-                  border: '1px solid rgba(255,255,255,0.06)',
+                  border: '1px solid #eae6db',
                   marginBottom: '14px'
                 }}>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em', marginBottom: '4px' }}>
                     🎙️ SPOKEN VOICE TRIGGER:
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: '#c4b5fd' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.82rem', color: '#111827' }}>
                     &quot;{task.voiceTrigger}&quot;
                   </div>
                 </div>
               </div>
 
-              {/* Action Button */}
               <button
                 onClick={() => runTask(task)}
                 disabled={isRunning}
-                className={isSuccess ? 'btn-secondary' : 'btn-primary'}
-                style={{
-                  width: '100%',
-                  justifyContent: 'center',
-                  background: isSuccess ? 'rgba(16,185,129,0.15)' : undefined,
-                  borderColor: isSuccess ? '#10b981' : undefined
-                }}
+                className={isSuccess ? 'btn-wispr-secondary' : 'btn-wispr-lilac'}
+                style={{ width: '100%', justifyContent: 'center' }}
               >
                 {isRunning ? (
                   <>
-                    <Loader2 size={16} className="spin" style={{ animation: 'spin 1s linear infinite' }} />
+                    <Loader2 size={15} style={{ animation: 'spin 1s linear infinite' }} />
                     <span>Executing Pipeline...</span>
                   </>
                 ) : isSuccess ? (
                   <>
-                    <CheckCircle2 size={16} color="#10b981" />
+                    <CheckCircle2 size={15} color="#059669" />
                     <span>Workflow Succeeded ({task.duration})</span>
                   </>
                 ) : (
                   <>
-                    <PlayCircle size={16} />
+                    <PlayCircle size={15} />
                     <span>Trigger Spoken Macro</span>
                   </>
                 )}
@@ -220,28 +209,27 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({ playTo
         })}
       </div>
 
-      {/* Live Pipeline Terminal & DAG Visualizer */}
+      {/* Terminal Screen & DAG */}
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
         gap: '20px'
       }}>
         {/* Terminal Screen */}
-        <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div className="wispr-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Terminal size={18} color="var(--accent-green)" />
+              <Terminal size={17} color="#093c31" />
               <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Live Automation Execution Console</h3>
             </div>
-            <span className="mono-badge">WISPR-CLI DAEMON</span>
+            <span className="mono-tag">WISPR-CLI DAEMON</span>
           </div>
 
           <div style={{
-            backgroundColor: '#090a10',
-            border: '1px solid rgba(255,255,255,0.08)',
+            backgroundColor: '#111827',
             borderRadius: '10px',
             padding: '16px',
-            minHeight: '180px',
+            minHeight: '170px',
             fontFamily: 'var(--font-mono)',
             fontSize: '0.82rem',
             lineHeight: '1.6',
@@ -250,24 +238,24 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({ playTo
           }}>
             {activeTaskLogs.map((line, idx) => (
               <div key={idx} style={{ display: 'flex', gap: '8px' }}>
-                <span style={{ color: '#64748b' }}>$&gt;</span>
+                <span style={{ color: '#6b7280' }}>$&gt;</span>
                 <span>{line}</span>
               </div>
             ))}
             {runningTaskId && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--accent-green)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#34d399' }}>
                 <span className="pulse-dot" style={{ width: '6px', height: '6px' }}></span>
-                <span>processing step...</span>
+                <span>executing step...</span>
               </div>
             )}
           </div>
         </div>
 
-        {/* Pipeline Execution Flow DAG */}
-        <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>Automated CI/CD Pipeline Topology</h3>
+        {/* Pipeline Topology */}
+        <div className="wispr-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <h3 style={{ fontSize: '0.95rem', fontWeight: 700 }}>CI/CD Pipeline Topology</h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Each stage is verified automatically upon voice trigger confirmation:
+            Each stage is validated automatically upon voice macro trigger:
           </p>
 
           <div style={{
@@ -276,8 +264,9 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({ playTo
             justifyContent: 'space-between',
             gap: '8px',
             padding: '16px 8px',
-            backgroundColor: 'rgba(0,0,0,0.25)',
-            borderRadius: '10px'
+            backgroundColor: '#faf8f0',
+            borderRadius: '10px',
+            border: '1px solid #eae6db'
           }}>
             {[
               { label: 'Voice Intent', sub: 'Wispr Flow' },
@@ -291,22 +280,22 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({ playTo
                     width: '32px',
                     height: '32px',
                     borderRadius: '50%',
-                    backgroundColor: runningTaskId ? 'rgba(16,185,129,0.2)' : 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(16,185,129,0.4)',
+                    backgroundColor: runningTaskId ? '#dcfce7' : '#ffffff',
+                    border: '1.5px solid #093c31',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     margin: '0 auto 6px',
                     fontSize: '0.8rem',
                     fontWeight: 700,
-                    color: '#10b981'
+                    color: '#093c31'
                   }}>
                     {i + 1}
                   </div>
                   <div style={{ fontSize: '0.8rem', fontWeight: 600 }}>{stage.label}</div>
                   <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{stage.sub}</div>
                 </div>
-                {i < 3 && <span style={{ color: '#64748b', fontSize: '1.2rem' }}>→</span>}
+                {i < 3 && <span style={{ color: '#9ca3af', fontSize: '1.1rem' }}>→</span>}
               </React.Fragment>
             ))}
           </div>

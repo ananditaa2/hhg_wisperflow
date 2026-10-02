@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Activity, Zap, Keyboard, Clock, Mic, Sparkles, Send, Copy, Check } from 'lucide-react';
+import { Activity, Zap, Keyboard, Clock, Mic, Sparkles, Copy, Check, ArrowRight } from 'lucide-react';
 import { TelemetryData } from '../types';
 
 interface DevCockpitProps {
@@ -8,6 +8,7 @@ interface DevCockpitProps {
   frequencyDataRef: React.MutableRefObject<Uint8Array>;
   volume: number;
   onStartMic: () => void;
+  onInjectSpeech?: (text: string) => void;
 }
 
 const SAMPLE_PROMPTS = [
@@ -22,18 +23,19 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
   telemetry,
   frequencyDataRef,
   volume,
-  onStartMic
+  onStartMic,
+  onInjectSpeech
 }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const [selectedPrompt, setSelectedPrompt] = useState<string>(SAMPLE_PROMPTS[0]);
   const [copied, setCopied] = useState<boolean>(false);
   const [promptLog, setPromptLog] = useState<string[]>([
-    "Initial scaffold created using Wispr Flow voice prompt.",
-    "Web Audio API hook integrated with live frequency spectrum.",
-    "Flow Multiplier benchmark initialized at 3.6x velocity."
+    "Scaffolded Vite + React application hands-free via Wispr Flow.",
+    "Integrated Web Audio API frequency analyzer with live FFT nodes.",
+    "Flow Multiplier benchmark calibrated at 3.8x velocity."
   ]);
 
-  // Canvas visualizer loop
+  // Clean Audio Bars Visualizer Loop (Wispr Flow Soundwave Aesthetic)
   useEffect(() => {
     let animId: number;
     const canvas = canvasRef.current;
@@ -47,28 +49,27 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
       ctx.clearRect(0, 0, width, height);
 
       const data = frequencyDataRef.current;
-      const bufferLength = data.length || 64;
-      const barWidth = (width / bufferLength) * 1.5;
-      let x = 0;
+      const totalBars = 36;
+      const barWidth = 6;
+      const gap = (width - totalBars * barWidth) / (totalBars + 1);
 
-      for (let i = 0; i < bufferLength; i++) {
-        const val = isListening ? data[i] : Math.sin(Date.now() * 0.003 + i * 0.15) * 20 + 25;
-        const barHeight = Math.max(4, (val / 255) * (height - 20));
+      for (let i = 0; i < totalBars; i++) {
+        const dataIndex = Math.floor((i / totalBars) * data.length);
+        const val = isListening ? data[dataIndex] : Math.sin(Date.now() * 0.003 + i * 0.2) * 20 + 25;
+        const normalized = Math.max(8, (val / 255) * (height - 24));
 
-        // Neon Gradient
-        const grad = ctx.createLinearGradient(0, height - barHeight, 0, height);
-        grad.addColorStop(0, '#06b6d4'); // Cyan top
-        grad.addColorStop(0.5, '#8b5cf6'); // Violet middle
-        grad.addColorStop(1, '#ec4899'); // Rose base
+        const x = gap + i * (barWidth + gap);
+        const y = (height - normalized) / 2;
 
-        ctx.fillStyle = grad;
-        ctx.fillRect(x, height - barHeight, barWidth - 2, barHeight);
+        // Wispr Signature Forest Green to Charcoal gradient
+        const grad = ctx.createLinearGradient(0, y, 0, y + normalized);
+        grad.addColorStop(0, '#093c31');
+        grad.addColorStop(1, '#111827');
 
-        // Subtle glow top dot
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(x, height - barHeight - 2, barWidth - 2, 2);
-
-        x += barWidth;
+        ctx.fillStyle = isListening ? grad : '#cbd5e1';
+        ctx.beginPath();
+        ctx.roundRect(x, y, barWidth, normalized, 3);
+        ctx.fill();
       }
 
       animId = requestAnimationFrame(render);
@@ -86,242 +87,194 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
 
   const handleSimulateVoiceInput = (prompt: string) => {
     setSelectedPrompt(prompt);
-    setPromptLog(prev => [prompt, ...prev.slice(0, 5)]);
+    setPromptLog(prev => [prompt, ...prev.slice(0, 4)]);
+    if (onInjectSpeech) {
+      onInjectSpeech(prompt);
+    }
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Top Banner / Hero */}
-      <div className="glass-panel" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <span className="mono-badge" style={{ color: 'var(--accent-purple)', borderColor: 'rgba(139,92,246,0.3)' }}>
-              PILLAR 1: DEVELOPER TOOL
-            </span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Real-Time Web Audio Telemetry</span>
-          </div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '6px' }} className="gradient-text">
-            Voice Telemetry & Flow Cockpit
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: '650px', fontSize: '0.95rem' }}>
-            Measures your vocal bandwidth in real time. Speaking eliminates the 45 WPM typing bottleneck, allowing you to formulate dense engineering logic at 160+ WPM directly into AI coding tools.
-          </p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+      {/* 1. Hero Section (Matching Screenshot "Don't type, just speak.") */}
+      <section style={{ textAlign: 'center', padding: '36px 16px 16px', maxWidth: '820px', margin: '0 auto' }}>
+        <div className="eyebrow-text" style={{ marginBottom: '14px' }}>
+          WISPR FLOW DEVELOPER TELEMETRY
         </div>
 
-        <div style={{ display: 'flex', gap: '12px' }}>
-          {!isListening && (
-            <button onClick={onStartMic} className="btn-primary">
+        <h1 className="serif-headline" style={{ fontSize: 'clamp(2.8rem, 6vw, 4.4rem)', lineHeight: '1.08', marginBottom: '18px' }}>
+          Don&apos;t type,<br />
+          <span className="serif-italic">just code.</span>
+        </h1>
+
+        <p style={{ fontSize: '1.15rem', color: 'var(--text-secondary)', maxWidth: '580px', margin: '0 auto 24px', lineHeight: '1.6' }}>
+          The voice-to-code suite that turns speech into clear, high-velocity software engineering in every app. Built 100% with Wispr Flow.
+        </p>
+
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
+          {!isListening ? (
+            <button onClick={onStartMic} className="btn-wispr-lilac" style={{ padding: '12px 24px', fontSize: '1rem' }}>
               <Mic size={18} />
-              <span>Enable Microphone Telemetry</span>
+              <span>Start Voice Telemetry</span>
+            </button>
+          ) : (
+            <button onClick={onStartMic} className="btn-wispr-secondary" style={{ padding: '12px 24px', fontSize: '1rem', borderColor: '#10b981', color: '#065f46' }}>
+              <span className="pulse-dot" style={{ width: '8px', height: '8px' }}></span>
+              <span>Microphone Active • {telemetry.currentWpm} WPM</span>
             </button>
           )}
+
+          <a
+            href="https://ref.wisprflow.ai/hhg"
+            target="_blank"
+            rel="noreferrer"
+            className="btn-wispr-secondary"
+            style={{ padding: '12px 20px', fontSize: '0.95rem' }}
+          >
+            <span>Wispr Referral Link</span>
+            <ArrowRight size={15} />
+          </a>
+        </div>
+      </section>
+
+      {/* 2. Real-Time Audio Soundwave Box */}
+      <div className="wispr-card" style={{ padding: '24px', maxWidth: '820px', width: '100%', margin: '0 auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{
+              width: '8px',
+              height: '8px',
+              borderRadius: '50%',
+              backgroundColor: isListening ? '#10b981' : '#9ca3af'
+            }} />
+            <span style={{ fontSize: '0.9rem', fontWeight: 600 }}>Live Acoustic Waveform (48kHz Web Audio)</span>
+          </div>
+          <span className="mono-tag">
+            {isListening ? `Volume: ${volume}%` : 'Standby'}
+          </span>
+        </div>
+
+        <div style={{
+          backgroundColor: '#faf8f0',
+          borderRadius: '12px',
+          border: '1px solid #eae6db',
+          padding: '16px 8px'
+        }}>
+          <canvas
+            ref={canvasRef}
+            width={760}
+            height={90}
+            style={{ width: '100%', height: '90px', display: 'block' }}
+          />
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '10px' }}>
+          <span>Low Resonance (Bass)</span>
+          <span>Conversational Formants (Wispr Whisper Engine)</span>
+          <span>Upper Sibilance</span>
         </div>
       </div>
 
-      {/* Telemetry Metric Cards */}
+      {/* 3. Metric Cards (Clean White with Natural Shadow) */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-        gap: '16px'
+        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+        gap: '16px',
+        maxWidth: '1100px',
+        margin: '0 auto',
+        width: '100%'
       }}>
-        {/* Card 1: Velocity Multiplier */}
-        <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid var(--accent-purple)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>FLOW MULTIPLIER</span>
-            <Zap size={18} color="var(--accent-purple)" />
+        {/* Metric 1 */}
+        <div className="wispr-card" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
+              FLOW MULTIPLIER
+            </span>
+            <Zap size={16} color="var(--accent-forest)" />
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#f8fafc' }}>
+            <span style={{ fontSize: '2.4rem', fontWeight: 800, color: '#111827' }}>
               {telemetry.flowMultiplier.toFixed(1)}x
             </span>
-            <span style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 600 }}>vs 45 WPM Typing</span>
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#059669' }}>
+              vs 45 WPM Typing
+            </span>
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            {telemetry.flowMultiplier > 2.5 ? '⚡ Hyper-Flow state detected' : 'Standard conversational baseline'}
+            3.8x faster thought-to-code velocity
           </p>
         </div>
 
-        {/* Card 2: Current WPM */}
-        <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid var(--accent-cyan)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>VOICE VELOCITY</span>
-            <Activity size={18} color="var(--accent-cyan)" />
+        {/* Metric 2 */}
+        <div className="wispr-card" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
+              CURRENT VELOCITY
+            </span>
+            <Activity size={16} color="#0284c7" />
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#f8fafc' }}>
+            <span style={{ fontSize: '2.4rem', fontWeight: 800, color: '#111827' }}>
               {telemetry.currentWpm}
             </span>
-            <span style={{ color: 'var(--accent-cyan)', fontSize: '0.85rem', fontWeight: 600 }}>Words / Min</span>
-          </div>
-          <div style={{ marginTop: '10px', height: '6px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '3px', overflow: 'hidden' }}>
-            <div style={{
-              width: `${Math.min(100, (telemetry.currentWpm / 200) * 100)}%`,
-              height: '100%',
-              backgroundColor: 'var(--accent-cyan)',
-              transition: 'width 0.3s ease'
-            }} />
-          </div>
-        </div>
-
-        {/* Card 3: Keystrokes Saved */}
-        <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid var(--accent-green)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>KEYSTROKES SPARED</span>
-            <Keyboard size={18} color="var(--accent-green)" />
-          </div>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#f8fafc' }}>
-              {telemetry.keystrokesSaved.toLocaleString()}
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#0284c7' }}>
+              Words / Min
             </span>
-            <span style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 600 }}>Keys</span>
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Zero repetitive strain injury (RSI) friction
+            Spoken speech bandwidth rate
           </p>
         </div>
 
-        {/* Card 4: Session Duration & Words */}
-        <div className="glass-panel" style={{ padding: '20px', borderLeft: '4px solid var(--accent-amber)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', marginBottom: '8px' }}>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>WORDS TRANSCRIBED</span>
-            <Clock size={18} color="var(--accent-amber)" />
+        {/* Metric 3 */}
+        <div className="wispr-card" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
+              KEYSTROKES SPARED
+            </span>
+            <Keyboard size={16} color="#7c3aed" />
           </div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
-            <span style={{ fontSize: '2.5rem', fontWeight: 800, color: '#f8fafc' }}>
+            <span style={{ fontSize: '2.4rem', fontWeight: 800, color: '#111827' }}>
+              {telemetry.keystrokesSaved.toLocaleString()}
+            </span>
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#7c3aed' }}>
+              Keys
+            </span>
+          </div>
+          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+            Zero repetitive wrist strain
+          </p>
+        </div>
+
+        {/* Metric 4 */}
+        <div className="wispr-card" style={{ padding: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+            <span style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
+              WORDS TRANSCRIBED
+            </span>
+            <Clock size={16} color="#d97706" />
+          </div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+            <span style={{ fontSize: '2.4rem', fontWeight: 800, color: '#111827' }}>
               {telemetry.wordsSpoken}
             </span>
-            <span style={{ color: 'var(--accent-amber)', fontSize: '0.85rem', fontWeight: 600 }}>
+            <span style={{ fontSize: '0.82rem', fontWeight: 600, color: '#d97706' }}>
               {telemetry.sessionDuration}s session
             </span>
           </div>
           <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '8px' }}>
-            Transcribed with Wispr Flow speech engine
+            Wispr speech-to-text engine
           </p>
         </div>
       </div>
 
-      {/* Visualizer & Benchmark Section */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(400px, 1fr))',
-        gap: '20px'
-      }}>
-        {/* Real-time Spectrum Canvas */}
-        <div className="glass-panel-glow" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <div className="pulse-dot" style={{ backgroundColor: isListening ? '#06b6d4' : '#64748b' }} />
-              <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>Real-Time Frequency Spectrum (Web Audio FFT)</h3>
-            </div>
-            <span className="mono-badge" style={{ color: 'var(--accent-cyan)' }}>
-              Amp: {volume}%
-            </span>
-          </div>
-
-          <div style={{
-            position: 'relative',
-            backgroundColor: '#0c0e17',
-            borderRadius: '12px',
-            border: '1px solid rgba(255,255,255,0.06)',
-            overflow: 'hidden',
-            padding: '12px'
-          }}>
-            <canvas 
-              ref={canvasRef} 
-              width={600} 
-              height={140} 
-              style={{ width: '100%', height: '140px', display: 'block' }}
-            />
-            {!isListening && (
-              <div style={{
-                position: 'absolute',
-                top: 0,
-                left: 0,
-                right: 0,
-                bottom: 0,
-                backgroundColor: 'rgba(8, 9, 13, 0.65)',
-                backdropFilter: 'blur(4px)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
-                <p style={{ fontSize: '0.9rem', color: '#cbd5e1' }}>Microphone in standby</p>
-                <button onClick={onStartMic} className="btn-primary" style={{ padding: '6px 14px', fontSize: '0.85rem' }}>
-                  <Mic size={14} /> Connect Audio
-                </button>
-              </div>
-            )}
-          </div>
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-            <span>20 Hz (Low Bass)</span>
-            <span>Speech Formants (300Hz - 3.4kHz)</span>
-            <span>8 kHz (Presence)</span>
-          </div>
-        </div>
-
-        {/* Voice vs Keyboard Benchmark */}
-        <div className="glass-panel" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={18} color="var(--accent-purple)" />
-            <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>The Wispr Flow Velocity Benchmark</h3>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
-                <span style={{ fontWeight: 600, color: '#c4b5fd' }}>🎙️ Wispr Flow Natural Speech</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#a78bfa' }}>165 WPM</span>
-              </div>
-              <div style={{ height: '10px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '5px', overflow: 'hidden' }}>
-                <div style={{ width: '85%', height: '100%', background: 'linear-gradient(90deg, #8b5cf6, #06b6d4)' }} />
-              </div>
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
-                <span style={{ fontWeight: 600, color: '#94a3b8' }}>⌨️ Mechanical Keyboard Typing</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#94a3b8' }}>48 WPM</span>
-              </div>
-              <div style={{ height: '10px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '5px', overflow: 'hidden' }}>
-                <div style={{ width: '25%', height: '100%', backgroundColor: '#64748b' }} />
-              </div>
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
-                <span style={{ fontWeight: 600, color: '#94a3b8' }}>📱 Mobile Screen Keyboard</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#94a3b8' }}>32 WPM</span>
-              </div>
-              <div style={{ height: '10px', backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: '5px', overflow: 'hidden' }}>
-                <div style={{ width: '16%', height: '100%', backgroundColor: '#475569' }} />
-              </div>
-            </div>
-          </div>
-
-          <div style={{
-            padding: '12px',
-            backgroundColor: 'rgba(139,92,246,0.08)',
-            border: '1px solid rgba(139,92,246,0.2)',
-            borderRadius: '10px',
-            fontSize: '0.82rem',
-            color: '#ddd6fe',
-            lineHeight: '1.4'
-          }}>
-            <strong>💡 Insight:</strong> When orchestrating AI coding models, typing detailed architectural requirements takes ~2.5 minutes by hand, but only ~35 seconds using Wispr Flow.
-          </div>
-        </div>
-      </div>
-
-      {/* Voice Prompt Live Sandbox */}
-      <div className="glass-panel" style={{ padding: '24px' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '6px' }}>
-          Spoken Intent Sandbox (Simulated Voice Flow)
+      {/* 4. Interactive Spoken Intent Sandbox */}
+      <div className="wispr-card" style={{ padding: '28px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
+        <h3 className="serif-headline" style={{ fontSize: '1.5rem', marginBottom: '8px' }}>
+          Interactive Spoken Intent Sandbox
         </h3>
-        <p style={{ color: 'var(--text-secondary)', fontSize: '0.88rem', marginBottom: '16px' }}>
-          Click any sample voice prompt to simulate speaking it via Wispr Flow into your AI development pipeline:
+        <p style={{ color: 'var(--text-secondary)', fontSize: '0.92rem', marginBottom: '16px' }}>
+          Click any sample engineering prompt below to simulate speaking it into your AI developer workflow. Watch the words and velocity metrics above respond instantly:
         </p>
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
@@ -329,12 +282,12 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
             <button
               key={index}
               onClick={() => handleSimulateVoiceInput(prompt)}
-              className="btn-secondary"
+              className="btn-wispr-secondary"
               style={{
-                fontSize: '0.8rem',
-                borderColor: selectedPrompt === prompt ? 'var(--accent-purple)' : undefined,
-                color: selectedPrompt === prompt ? '#fff' : undefined,
-                backgroundColor: selectedPrompt === prompt ? 'rgba(139,92,246,0.2)' : undefined
+                fontSize: '0.82rem',
+                backgroundColor: selectedPrompt === prompt ? 'var(--accent-lilac)' : undefined,
+                borderColor: selectedPrompt === prompt ? 'var(--border-dark)' : undefined,
+                fontWeight: selectedPrompt === prompt ? 600 : 500
               }}
             >
               Prompt #{index + 1}
@@ -343,8 +296,8 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
         </div>
 
         <div style={{
-          backgroundColor: '#0c0e17',
-          border: '1px solid rgba(255,255,255,0.08)',
+          backgroundColor: '#faf8f0',
+          border: '1px solid #eae6db',
           borderRadius: '12px',
           padding: '16px',
           display: 'flex',
@@ -353,30 +306,30 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
           gap: '12px'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ color: 'var(--accent-purple)' }}>🎙️</span>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', color: '#f1f5f9' }}>
+            <span>🎙️</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', color: '#111827' }}>
               &quot;{selectedPrompt}&quot;
             </span>
           </div>
-          <button 
+          <button
             onClick={() => handleCopyPrompt(selectedPrompt)}
-            className="btn-secondary"
+            className="btn-wispr-secondary"
             style={{ padding: '6px 12px', fontSize: '0.78rem' }}
           >
-            {copied ? <Check size={14} color="#10b981" /> : <Copy size={14} />}
+            {copied ? <Check size={14} color="#059669" /> : <Copy size={14} />}
             <span>{copied ? 'Copied' : 'Copy'}</span>
           </button>
         </div>
 
-        {/* Live Prompt Activity Stream */}
+        {/* Recent Activity Log */}
         <div style={{ marginTop: '16px' }}>
-          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-            Recent Voice Stream Log:
-          </span>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+            Recent Spoken Stream:
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {promptLog.map((log, i) => (
-              <div key={i} style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ color: 'var(--accent-green)', fontSize: '0.7rem' }}>●</span>
+              <div key={i} style={{ fontSize: '0.84rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: '#093c31', fontSize: '0.65rem' }}>●</span>
                 <span>{log}</span>
               </div>
             ))}

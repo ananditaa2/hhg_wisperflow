@@ -4,14 +4,12 @@ import { DevCockpit } from './components/DevCockpit';
 import { VoiceGame } from './components/VoiceGame';
 import { WorkflowAutomations } from './components/WorkflowAutomations';
 import { VoiceArchitectureCanvas } from './components/VoiceArchitectureCanvas';
-import { WisprModal } from './components/WisprModal';
 import { useAudioAnalyzer } from './hooks/useAudioAnalyzer';
 import { ActiveTab } from './types';
 import { Sparkles, ExternalLink, Heart } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('cockpit');
-  const [isGuideOpen, setIsGuideOpen] = useState<boolean>(false);
 
   const {
     isActive,
@@ -20,6 +18,7 @@ export function App() {
     frequencyDataRef,
     startListening,
     stopListening,
+    injectSpeechInput,
     playTone
   } = useAudioAnalyzer();
 
@@ -40,7 +39,6 @@ export function App() {
         isListening={isActive}
         onToggleMic={handleToggleMic}
         telemetry={telemetry}
-        onOpenGuide={() => setIsGuideOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -52,6 +50,7 @@ export function App() {
             frequencyDataRef={frequencyDataRef}
             volume={volume}
             onStartMic={startListening}
+            onInjectSpeech={injectSpeechInput}
           />
         )}
 
@@ -73,18 +72,32 @@ export function App() {
         )}
       </main>
 
-      {/* Video & Submission Guide Modal */}
-      <WisprModal isOpen={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
+      {/* Floating Lilac Wispr Capsule Widget (Matches Screenshot Bottom-Left) */}
+      <div
+        className="floating-wispr-capsule"
+        onClick={handleToggleMic}
+        title={isActive ? 'Microphone Active (Click to mute)' : 'Click to start Wispr Voice Input'}
+        style={{
+          backgroundColor: isActive ? '#bbf7d0' : 'var(--accent-lilac)'
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+          <div style={{ width: '2.5px', height: isActive ? '14px' : '10px', backgroundColor: '#111827', borderRadius: '1px', transition: 'height 0.2s' }} />
+          <div style={{ width: '2.5px', height: isActive ? '22px' : '16px', backgroundColor: '#111827', borderRadius: '1px', transition: 'height 0.2s' }} />
+          <div style={{ width: '2.5px', height: isActive ? '18px' : '12px', backgroundColor: '#111827', borderRadius: '1px', transition: 'height 0.2s' }} />
+          <div style={{ width: '2.5px', height: isActive ? '10px' : '6px', backgroundColor: '#111827', borderRadius: '1px', transition: 'height 0.2s' }} />
+        </div>
+      </div>
 
       {/* Footer */}
       <footer style={{
-        borderTop: '1px solid var(--border-subtle)',
-        backgroundColor: 'rgba(8, 9, 13, 0.9)',
-        padding: '20px 24px',
-        marginTop: '40px'
+        borderTop: '1px solid #eae6db',
+        backgroundColor: '#f5f2e8',
+        padding: '24px 20px',
+        marginTop: '60px'
       }}>
         <div style={{
-          maxWidth: '1400px',
+          maxWidth: '1280px',
           margin: '0 auto',
           display: 'flex',
           justifyContent: 'space-between',
@@ -92,16 +105,15 @@ export function App() {
           flexWrap: 'wrap',
           gap: '12px',
           fontSize: '0.85rem',
-          color: 'var(--text-muted)'
+          color: 'var(--text-secondary)'
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Sparkles size={16} color="var(--accent-purple)" />
             <span>Built 100% using voice with</span>
             <a
               href="https://ref.wisprflow.ai/hhg"
               target="_blank"
               rel="noreferrer"
-              style={{ color: '#a78bfa', textDecoration: 'none', fontWeight: 600 }}
+              style={{ color: '#093c31', textDecoration: 'none', fontWeight: 700 }}
             >
               Wispr Flow (ref.wisprflow.ai/hhg)
             </a>

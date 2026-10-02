@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import confetti from 'canvas-confetti';
-import { Gamepad2, Mic, RotateCcw, Trophy, Volume2, Shield } from 'lucide-react';
+import { Gamepad2, Mic, RotateCcw, Trophy, Volume2 } from 'lucide-react';
 import { GameObstacle } from '../types';
 
 interface VoiceGameProps {
@@ -11,9 +11,9 @@ interface VoiceGameProps {
 }
 
 const OBSTACLE_TYPES: Array<{ type: 'bug' | 'syntax_error' | 'merge_conflict'; label: string; color: string }> = [
-  { type: 'bug', label: '🐛 BUG #404', color: '#f43f5e' },
-  { type: 'syntax_error', label: '⚠️ SYNTAX ERROR', color: '#f59e0b' },
-  { type: 'merge_conflict', label: '⚔️ MERGE CONFLICT', color: '#ec4899' }
+  { type: 'bug', label: '🐛 BUG #404', color: '#e11d48' },
+  { type: 'syntax_error', label: '⚠️ SYNTAX ERROR', color: '#d97706' },
+  { type: 'merge_conflict', label: '⚔️ CONFLICT', color: '#7c3aed' }
 ];
 
 export const VoiceGame: React.FC<VoiceGameProps> = ({
@@ -28,15 +28,14 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
   const [highScore, setHighScore] = useState<number>(() => {
     return Number(localStorage.getItem('wispr_game_high') || 0);
   });
-  const [sensitivity, setSensitivity] = useState<number>(25); // Volume threshold to jump
+  const [sensitivity, setSensitivity] = useState<number>(25);
 
-  // Game physics state refs
   const playerRef = useRef({
     x: 80,
     y: 200,
     vy: 0,
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     isGrounded: false
   });
 
@@ -52,7 +51,6 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
     }
   }, [playTone]);
 
-  // Handle voice-triggered jump
   useEffect(() => {
     if (gameState === 'playing' && volume > sensitivity) {
       triggerJump();
@@ -67,8 +65,8 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
       x: 80,
       y: 200,
       vy: 0,
-      width: 36,
-      height: 36,
+      width: 38,
+      height: 38,
       isGrounded: false
     };
     obstaclesRef.current = [];
@@ -78,7 +76,6 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
     playTone(660, 'triangle', 0.2);
   };
 
-  // Main Game Loop
   useEffect(() => {
     if (gameState !== 'playing') return;
 
@@ -94,7 +91,6 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
       frameCountRef.current += 1;
       const player = playerRef.current;
 
-      // 1. Update Player Physics
       player.vy += gravity;
       player.y += player.vy;
 
@@ -104,13 +100,11 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
         player.isGrounded = true;
       }
 
-      // Ceiling limit
       if (player.y < 20) {
         player.y = 20;
         player.vy = 0;
       }
 
-      // 2. Spawn Obstacles
       if (frameCountRef.current % 110 === 0) {
         const obsDef = OBSTACLE_TYPES[Math.floor(Math.random() * OBSTACLE_TYPES.length)];
         obstaclesRef.current.push({
@@ -118,16 +112,15 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
           width: 50,
           height: Math.floor(Math.random() * 30) + 40,
           type: obsDef.type,
-          label: obsDef.label
+          label: obsDef.label,
+          color: obsDef.color
         });
       }
 
-      // 3. Update & Clean Obstacles
       for (let i = obstaclesRef.current.length - 1; i >= 0; i--) {
         const obs = obstaclesRef.current[i];
         obs.x -= 4.5;
 
-        // Collision Check (AABB)
         const obsY = groundY - obs.height;
         if (
           player.x < obs.x + obs.width &&
@@ -135,7 +128,6 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
           player.y < obsY + obs.height &&
           player.y + player.height > obsY
         ) {
-          // Game Over Collision
           setGameState('gameover');
           playTone(200, 'sawtooth', 0.4);
           setHighScore(prev => {
@@ -146,7 +138,6 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
           return;
         }
 
-        // Passed Obstacle -> Score Point
         if (obs.x + obs.width < player.x && !(obs as unknown as { scored: boolean }).scored) {
           (obs as unknown as { scored: boolean }).scored = true;
           setScore(s => {
@@ -159,17 +150,20 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
           });
         }
 
-        // Remove offscreen
         if (obs.x + obs.width < -50) {
           obstaclesRef.current.splice(i, 1);
         }
       }
 
-      // 4. Render
+      // Render Warm Canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // Grid Background
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+      // Background
+      ctx.fillStyle = '#faf8f0';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Grid
+      ctx.strokeStyle = '#eae6db';
       ctx.lineWidth = 1;
       for (let x = 0; x < canvas.width; x += 40) {
         ctx.beginPath();
@@ -179,60 +173,60 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
       }
 
       // Ground Line
-      ctx.strokeStyle = '#8b5cf6';
+      ctx.strokeStyle = '#093c31';
       ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(0, groundY);
       ctx.lineTo(canvas.width, groundY);
       ctx.stroke();
 
-      // Ground Glow
-      ctx.fillStyle = 'rgba(139, 92, 246, 0.15)';
+      ctx.fillStyle = '#f0ebe0';
       ctx.fillRect(0, groundY, canvas.width, 40);
 
-      // Render Player (Wispr Drone)
+      // Render Player (Wispr Lilac Drone)
       ctx.save();
       ctx.translate(player.x, player.y);
 
-      // Drone Glow
-      ctx.shadowColor = '#06b6d4';
-      ctx.shadowBlur = 15;
-      ctx.fillStyle = '#06b6d4';
+      ctx.fillStyle = '#ecdffc';
+      ctx.strokeStyle = '#18181b';
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.roundRect(0, 0, player.width, player.height, 8);
+      ctx.roundRect(0, 0, player.width, player.height, 10);
       ctx.fill();
+      ctx.stroke();
 
-      // Drone Core / Eyes
-      ctx.shadowBlur = 0;
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(player.width - 12, 10, 6, 6);
+      // Soundwave logo on player
+      ctx.fillStyle = '#111827';
+      ctx.fillRect(10, 14, 2.5, 10);
+      ctx.fillRect(16, 10, 2.5, 18);
+      ctx.fillRect(22, 12, 2.5, 14);
+      ctx.fillRect(28, 16, 2.5, 6);
 
       // Thrust flame when jumping
       if (!player.isGrounded) {
-        ctx.fillStyle = '#ec4899';
+        ctx.fillStyle = '#f59e0b';
         ctx.beginPath();
-        ctx.moveTo(8, player.height);
+        ctx.moveTo(10, player.height + 2);
         ctx.lineTo(player.width / 2, player.height + 12 + Math.random() * 8);
-        ctx.lineTo(player.width - 8, player.height);
+        ctx.lineTo(player.width - 10, player.height + 2);
         ctx.fill();
       }
       ctx.restore();
 
-      // Render Obstacles (Bugs)
+      // Render Obstacles
       obstaclesRef.current.forEach(obs => {
         const obsY = groundY - obs.height;
         ctx.save();
-        ctx.fillStyle = obs.type === 'bug' ? '#f43f5e' : obs.type === 'syntax_error' ? '#f59e0b' : '#ec4899';
-        ctx.shadowColor = ctx.fillStyle;
-        ctx.shadowBlur = 10;
+        ctx.fillStyle = obs.color || '#e11d48';
+        ctx.strokeStyle = '#18181b';
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
         ctx.roundRect(obs.x, obsY, obs.width, obs.height, 6);
         ctx.fill();
+        ctx.stroke();
 
-        // Label
-        ctx.shadowBlur = 0;
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '10px JetBrains Mono';
+        ctx.fillStyle = '#18181b';
+        ctx.font = 'bold 10px Plus Jakarta Sans';
         ctx.fillText(obs.label, obs.x, obsY - 8);
         ctx.restore();
       });
@@ -247,77 +241,70 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
   }, [gameState, score, playTone]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      {/* Pillar Header */}
-      <div className="glass-panel" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', maxWidth: '1100px', margin: '0 auto', width: '100%' }}>
+      {/* Header */}
+      <div className="wispr-card" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-            <span className="mono-badge" style={{ color: 'var(--accent-cyan)', borderColor: 'rgba(6,182,212,0.3)' }}>
-              PILLAR 2: INTERACTIVE GAME
-            </span>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Acoustic Frequency Physics Engine</span>
+          <div className="eyebrow-text" style={{ marginBottom: '8px' }}>
+            PILLAR 2: INTERACTIVE ARCADE
           </div>
-          <h2 style={{ fontSize: '1.8rem', fontWeight: 800, marginBottom: '6px' }} className="gradient-text-cyan">
+          <h2 className="serif-headline" style={{ fontSize: '2rem', marginBottom: '6px' }}>
             Sonic Jump: Bug Buster
           </h2>
-          <p style={{ color: 'var(--text-secondary)', maxWidth: '650px', fontSize: '0.95rem' }}>
-            A voice-controlled arcade game. Use your vocal volume and speech frequency to propel the Wispr drone into the air and dodge bugs, syntax errors, and merge conflicts!
+          <p style={{ color: 'var(--text-secondary)', maxWidth: '620px', fontSize: '0.95rem' }}>
+            A voice-controlled arcade game. Use your vocal volume and speech to make the Wispr drone jump over bugs, syntax errors, and merge conflicts!
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>HIGH SCORE</div>
-            <div style={{ fontSize: '1.4rem', fontWeight: 800, color: 'var(--accent-amber)', display: 'flex', alignItems: 'center', gap: '4px' }}>
-              <Trophy size={18} /> {highScore}
-            </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)' }}>HIGH SCORE</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#d97706', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Trophy size={18} /> {highScore}
           </div>
         </div>
       </div>
 
       {/* Game Canvas Container */}
-      <div className="glass-panel-glow" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-        {/* HUD Bar */}
+      <div className="wispr-card" style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Gamepad2 size={20} color="var(--accent-cyan)" />
-              <span style={{ fontWeight: 700, fontSize: '1.1rem' }}>Score: {score}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700, fontSize: '1.1rem' }}>
+              <Gamepad2 size={18} />
+              <span>Score: {score}</span>
             </div>
 
-            {/* Mic Level VU Meter */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'rgba(0,0,0,0.3)', padding: '6px 12px', borderRadius: '8px' }}>
-              <Volume2 size={16} color={volume > sensitivity ? '#10b981' : '#94a3b8'} />
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Voice Jump Level:</span>
-              <div style={{ width: '80px', height: '8px', backgroundColor: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden' }}>
+            {/* Mic Meter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#faf8f0', padding: '6px 12px', borderRadius: '8px', border: '1px solid #eae6db' }}>
+              <Volume2 size={15} color={volume > sensitivity ? '#059669' : '#6b7280'} />
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Voice Trigger:</span>
+              <div style={{ width: '80px', height: '6px', backgroundColor: '#e5e0d3', borderRadius: '3px', overflow: 'hidden' }}>
                 <div style={{
                   width: `${volume}%`,
                   height: '100%',
-                  backgroundColor: volume > sensitivity ? '#10b981' : '#06b6d4',
+                  backgroundColor: volume > sensitivity ? '#059669' : '#093c31',
                   transition: 'width 0.1s linear'
                 }} />
               </div>
-              <span className="mono-badge" style={{ fontSize: '0.7rem' }}>{volume}%</span>
+              <span className="mono-tag" style={{ fontSize: '0.7rem' }}>{volume}%</span>
             </div>
           </div>
 
-          {/* Sensitivity Slider */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Mic Trigger Sensitivity:</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Trigger Threshold:</span>
             <input
               type="range"
               min="10"
               max="60"
               value={sensitivity}
               onChange={(e) => setSensitivity(Number(e.target.value))}
-              style={{ width: '100px', accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
+              style={{ width: '100px', accentColor: 'var(--accent-forest)', cursor: 'pointer' }}
             />
-            <span className="mono-badge">{sensitivity}%</span>
+            <span className="mono-tag">{sensitivity}%</span>
           </div>
         </div>
 
-        {/* The Screen */}
-        <div style={{ position: 'relative', width: '100%', backgroundColor: '#090a10', borderRadius: '12px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.08)' }}>
+        {/* Screen */}
+        <div style={{ position: 'relative', width: '100%', borderRadius: '12px', overflow: 'hidden', border: '1.5px solid var(--border-dark)' }}>
           <canvas
             ref={canvasRef}
             width={800}
@@ -326,80 +313,57 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
             onClick={gameState === 'playing' ? triggerJump : startGame}
           />
 
-          {/* Overlay: Idle State */}
           {gameState === 'idle' && (
             <div style={{
               position: 'absolute',
               inset: 0,
-              backgroundColor: 'rgba(8, 9, 13, 0.75)',
-              backdropFilter: 'blur(6px)',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '16px'
-            }}>
-              <div style={{ width: '56px', height: '56px', borderRadius: '16px', background: 'linear-gradient(135deg, #06b6d4, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <Gamepad2 size={28} color="#fff" />
-              </div>
-              <div style={{ textAlign: 'center' }}>
-                <h3 style={{ fontSize: '1.4rem', fontWeight: 800 }}>Ready to Bug-Bust with Your Voice?</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginTop: '4px' }}>
-                  Speak, make sounds, or tap Space/Click to make the Wispr drone jump!
-                </p>
-              </div>
-              <button onClick={startGame} className="btn-primary" style={{ padding: '12px 28px', fontSize: '1rem' }}>
-                <Mic size={18} /> Start Voice Game
-              </button>
-            </div>
-          )}
-
-          {/* Overlay: Game Over */}
-          {gameState === 'gameover' && (
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundColor: 'rgba(8, 9, 13, 0.85)',
-              backdropFilter: 'blur(8px)',
+              backgroundColor: 'rgba(250, 248, 240, 0.88)',
+              backdropFilter: 'blur(4px)',
               display: 'flex',
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
               gap: '14px'
             }}>
-              <span className="mono-badge" style={{ color: '#f43f5e', borderColor: 'rgba(244,63,94,0.3)' }}>
-                SYSTEM HALT
-              </span>
-              <h3 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#f8fafc' }}>
-                Merged a Critical Bug!
-              </h3>
-              <div style={{ display: 'flex', gap: '20px', margin: '8px 0' }}>
+              <h3 className="serif-headline" style={{ fontSize: '1.8rem' }}>Ready to Bug-Bust with Your Voice?</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                Speak, hum, make vocal sounds, or click to make the Wispr drone jump!
+              </p>
+              <button onClick={startGame} className="btn-wispr-lilac" style={{ padding: '12px 28px', fontSize: '1rem' }}>
+                <Mic size={18} /> Start Voice Game
+              </button>
+            </div>
+          )}
+
+          {gameState === 'gameover' && (
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundColor: 'rgba(250, 248, 240, 0.92)',
+              backdropFilter: 'blur(6px)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '12px'
+            }}>
+              <span className="mono-tag" style={{ color: '#e11d48' }}>CRITICAL ERROR</span>
+              <h3 className="serif-headline" style={{ fontSize: '2rem' }}>Merged a Bug to Production!</h3>
+              <div style={{ display: 'flex', gap: '24px', margin: '8px 0' }}>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>YOUR SCORE</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f8fafc' }}>{score}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>SCORE</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800 }}>{score}</div>
                 </div>
                 <div style={{ textAlign: 'center' }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>BEST RUN</div>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--accent-amber)' }}>{highScore}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>BEST</div>
+                  <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#d97706' }}>{highScore}</div>
                 </div>
               </div>
-              <button onClick={startGame} className="btn-primary" style={{ padding: '10px 24px' }}>
+              <button onClick={startGame} className="btn-wispr-lilac" style={{ padding: '10px 24px' }}>
                 <RotateCcw size={16} /> Play Again
               </button>
             </div>
           )}
-        </div>
-
-        {/* Instructions / Controls */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Mic size={15} color="var(--accent-cyan)" />
-            <span>Speak or make voice sounds into your mic to jump.</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Shield size={15} color="var(--accent-purple)" />
-            <span>Or click / tap canvas as physical fallback.</span>
-          </div>
         </div>
       </div>
     </div>

@@ -37,4 +37,5 @@ export interface GameObstacle {
   height: number;
   type: 'bug' | 'syntax_error' | 'merge_conflict';
   label: string;
+  color?: string;
 }

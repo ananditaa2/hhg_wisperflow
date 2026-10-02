@@ -52,6 +52,9 @@ export function useAudioAnalyzer() {
       const AudioCtx = window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       const ctx = new AudioCtx();
       audioContextRef.current = ctx;
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
 
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 128;
@@ -184,6 +187,25 @@ export function useAudioAnalyzer() {
     playTone(320, 'sine', 0.1);
   }, [playTone]);
 
+  const injectSpeechInput = useCallback((text: string) => {
+    const wordCount = text.trim().split(/\s+/).length;
+    wordsCounterRef.current += wordCount;
+    const words = wordsCounterRef.current;
+    const wpm = Math.min(210, Math.max(140, Math.round(155 + Math.random() * 25)));
+    const multiplier = Number((wpm / 45).toFixed(1));
+    const savedKeys = Math.round(words * 5.2);
+
+    setTelemetry(prev => ({
+      ...prev,
+      wordsSpoken: words,
+      currentWpm: wpm,
+      flowMultiplier: multiplier,
+      keystrokesSaved: savedKeys,
+      sessionDuration: Math.max(prev.sessionDuration, 14)
+    }));
+    playTone(580, 'triangle', 0.1);
+  }, [playTone]);
+
   useEffect(() => {
     return () => {
       stopListening();
@@ -197,6 +219,7 @@ export function useAudioAnalyzer() {
     frequencyDataRef,
     startListening,
     stopListening,
+    injectSpeechInput,
     playTone
   };
 }
