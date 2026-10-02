@@ -4,6 +4,9 @@ import { AutomationTask } from '../types';
 
 interface WorkflowAutomationsProps {
   playTone: (freq?: number, type?: OscillatorType, duration?: number) => void;
+  lastSpokenCommand?: string;
+  isListening?: boolean;
+  onStartMic?: () => void;
 }
 
 const INITIAL_TASKS: AutomationTask[] = [
@@ -65,11 +68,16 @@ const INITIAL_TASKS: AutomationTask[] = [
   }
 ];
 
-export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({ playTone }) => {
+export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({ 
+  playTone,
+  lastSpokenCommand = '',
+  isListening = false,
+  onStartMic
+}) => {
   const [tasks, setTasks] = useState<AutomationTask[]>(INITIAL_TASKS);
   const [activeTaskLogs, setActiveTaskLogs] = useState<string[]>([
     "Wispr Automation Daemon online.",
-    "Awaiting spoken command triggers or manual execution."
+    "Speak a command (e.g. 'Deploy', 'Audit', 'API', 'Docker') or click trigger."
   ]);
   const [runningTaskId, setRunningTaskId] = useState<string | null>(null);
 
@@ -98,6 +106,21 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({ playTo
     }, 600);
   };
 
+  // Automatic voice command matching
+  React.useEffect(() => {
+    if (!lastSpokenCommand) return;
+    const lower = lastSpokenCommand.toLowerCase();
+    if (lower.includes('deploy') || lower.includes('staging')) {
+      runTask(tasks[0]);
+    } else if (lower.includes('security') || lower.includes('audit')) {
+      runTask(tasks[1]);
+    } else if (lower.includes('api') || lower.includes('doc')) {
+      runTask(tasks[2]);
+    } else if (lower.includes('docker') || lower.includes('postgres') || lower.includes('cluster')) {
+      runTask(tasks[3]);
+    }
+  }, [lastSpokenCommand]);
+
   const resetAll = () => {
     setTasks(INITIAL_TASKS);
     setActiveTaskLogs(["All automation workflows reset to standby."]);
@@ -120,9 +143,27 @@ export const WorkflowAutomations: React.FC<WorkflowAutomationsProps> = ({ playTo
           </p>
         </div>
 
-        <button onClick={resetAll} className="btn-wispr-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
-          <RefreshCw size={14} /> Reset Workflows
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <div style={{
+            backgroundColor: '#faf8f0',
+            padding: '8px 14px',
+            borderRadius: '8px',
+            border: '1px solid #eae6db',
+            fontSize: '0.82rem',
+            color: '#093c31',
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '6px'
+          }}>
+            <span>🎙️</span>
+            <span>Say &quot;Deploy&quot;, &quot;Audit&quot;, &quot;API&quot;, or &quot;Docker&quot;</span>
+          </div>
+
+          <button onClick={resetAll} className="btn-wispr-secondary" style={{ padding: '8px 16px', fontSize: '0.85rem' }}>
+            <RefreshCw size={14} /> Reset
+          </button>
+        </div>
       </div>
 
       {/* Grid */}

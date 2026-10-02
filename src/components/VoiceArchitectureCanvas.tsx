@@ -1,29 +1,30 @@
-import React, { useState } from 'react';
-import { Network, Sparkles, Cpu, Layers, Terminal, Zap, Play } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { Network, Sparkles, Cpu, Layers, Terminal, Zap, Play, Plus, Move } from 'lucide-react';
 import { ArchitectureNode } from '../types';
 
 interface VoiceArchitectureCanvasProps {
   playTone: (freq?: number, type?: OscillatorType, duration?: number) => void;
+  lastSpokenCommand?: string;
 }
 
-const NODES_DATA: ArchitectureNode[] = [
+const INITIAL_NODES: ArchitectureNode[] = [
   {
     id: 'audio-input',
-    title: 'Acoustic Audio Ingestion',
+    title: 'Acoustic Ingestion',
     category: 'input',
     description: 'Raw microphone stream captured at 48kHz via Web Audio API.',
-    x: 60,
-    y: 170,
+    x: 40,
+    y: 150,
     connections: ['wispr-engine'],
     status: 'active'
   },
   {
     id: 'wispr-engine',
-    title: 'Wispr Flow Speech Engine',
+    title: 'Wispr Speech Engine',
     category: 'processing',
     description: 'Ultra-low latency whisper transcription, developer nomenclature & punctuation.',
-    x: 290,
-    y: 170,
+    x: 260,
+    y: 150,
     connections: ['intent-parser'],
     status: 'pulsing'
   },
@@ -32,8 +33,8 @@ const NODES_DATA: ArchitectureNode[] = [
     title: 'Intent & AST Extractor',
     category: 'ai',
     description: 'Extracts engineering intent, arguments, file targets, and terminal actions.',
-    x: 520,
-    y: 90,
+    x: 480,
+    y: 70,
     connections: ['agent-orchestrator', 'terminal-runner'],
     status: 'active'
   },
@@ -42,37 +43,110 @@ const NODES_DATA: ArchitectureNode[] = [
     title: 'Multi-Agent Synthesizer',
     category: 'ai',
     description: 'Translates architectural intent into multi-file TypeScript components.',
-    x: 750,
-    y: 90,
+    x: 700,
+    y: 70,
     connections: ['execution-sandbox'],
     status: 'active'
   },
   {
     id: 'terminal-runner',
-    title: 'Voice-Driven Shell Daemon',
+    title: 'Voice Shell Daemon',
     category: 'execution',
     description: 'Executes npm builds, git commits, and docker containers hands-free.',
-    x: 520,
-    y: 260,
+    x: 480,
+    y: 240,
     connections: ['execution-sandbox'],
     status: 'active'
   },
   {
     id: 'execution-sandbox',
-    title: 'Vite 6 Live Application Sandbox',
+    title: 'Vite 6 Sandbox',
     category: 'storage',
     description: 'Instant Hot Module Replacement (HMR) and real-time browser preview.',
-    x: 750,
-    y: 260,
+    x: 700,
+    y: 240,
     connections: [],
     status: 'active'
   }
 ];
 
-export const VoiceArchitectureCanvas: React.FC<VoiceArchitectureCanvasProps> = ({ playTone }) => {
-  const [selectedNode, setSelectedNode] = useState<ArchitectureNode>(NODES_DATA[1]);
+export const VoiceArchitectureCanvas: React.FC<VoiceArchitectureCanvasProps> = ({ 
+  playTone,
+  lastSpokenCommand = ''
+}) => {
+  const [nodes, setNodes] = useState<ArchitectureNode[]>(INITIAL_NODES);
+  const [selectedNode, setSelectedNode] = useState<ArchitectureNode>(INITIAL_NODES[1]);
   const [isSimulatingPacket, setIsSimulatingPacket] = useState<boolean>(false);
   const [activeStep, setActiveStep] = useState<number>(0);
+
+  // Dragging state
+  const draggingNodeRef = useRef<{ id: string; startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+  const handleMouseDown = (e: React.MouseEvent, node: ArchitectureNode) => {
+    setSelectedNode(node);
+    playTone(480, 'sine', 0.08);
+
+    draggingNodeRef.current = {
+      id: node.id,
+      startX: e.clientX,
+      startY: e.clientY,
+      origX: node.x,
+      origY: node.y
+    };
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!draggingNodeRef.current) return;
+    const { id, startX, startY, origX, origY } = draggingNodeRef.current;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    setNodes(prev => prev.map(n => {
+      if (n.id === id) {
+        return {
+          ...n,
+          x: Math.max(10, Math.min(740, origX + dx)),
+          y: Math.max(10, Math.min(300, origY + dy))
+        };
+      }
+      return n;
+    }));
+  };
+
+  const handleMouseUp = () => {
+    draggingNodeRef.current = null;
+  };
+
+  const addCustomNode = (title: string, category: ArchitectureNode['category']) => {
+    const id = `node-${Date.now()}`;
+    const newNode: ArchitectureNode = {
+      id,
+      title,
+      category,
+      description: `Custom ${title} node spawned dynamically via voice / UI action.`,
+      x: Math.floor(Math.random() * 300) + 350,
+      y: Math.floor(Math.random() * 150) + 120,
+      connections: ['execution-sandbox'],
+      status: 'active'
+    };
+
+    setNodes(prev => [...prev, newNode]);
+    setSelectedNode(newNode);
+    playTone(660, 'triangle', 0.15);
+  };
+
+  // Voice command detection for canvas
+  React.useEffect(() => {
+    if (!lastSpokenCommand) return;
+    const lower = lastSpokenCommand.toLowerCase();
+    if (lower.includes('cache') || lower.includes('redis')) {
+      addCustomNode('Redis Cache Layer', 'storage');
+    } else if (lower.includes('auth') || lower.includes('security')) {
+      addCustomNode('JWT Auth Sentinel', 'ai');
+    } else if (lower.includes('trace') || lower.includes('pipeline')) {
+      triggerPacketFlow();
+    }
+  }, [lastSpokenCommand]);
 
   const triggerPacketFlow = () => {
     if (isSimulatingPacket) return;
@@ -84,8 +158,10 @@ export const VoiceArchitectureCanvas: React.FC<VoiceArchitectureCanvasProps> = (
     const steps = [0, 1, 2, 3, 5];
     steps.forEach((stepIdx, i) => {
       setTimeout(() => {
-        setActiveStep(stepIdx);
-        setSelectedNode(NODES_DATA[stepIdx]);
+        if (nodes[stepIdx]) {
+          setActiveStep(stepIdx);
+          setSelectedNode(nodes[stepIdx]);
+        }
         playTone(500 + i * 90, 'triangle', 0.1);
         if (i === steps.length - 1) {
           setTimeout(() => {
@@ -95,6 +171,12 @@ export const VoiceArchitectureCanvas: React.FC<VoiceArchitectureCanvasProps> = (
         }
       }, i * 650);
     });
+  };
+
+  const getNodeCenter = (nodeId: string) => {
+    const n = nodes.find(item => item.id === nodeId);
+    if (!n) return { x: 0, y: 0 };
+    return { x: n.x + 65, y: n.y + 25 };
   };
 
   return (
@@ -109,14 +191,19 @@ export const VoiceArchitectureCanvas: React.FC<VoiceArchitectureCanvasProps> = (
             Voice-to-Architecture Canvas
           </h2>
           <p style={{ color: 'var(--text-secondary)', maxWidth: '620px', fontSize: '0.95rem' }}>
-            Visualizes the data pathway from spoken acoustic vibrations into synthesized software code. Click any node or trace a live voice packet transmission.
+            An interactive node topology. Drag nodes anywhere on the board, trace data packets, or speak commands like <strong>&quot;Add Redis Cache&quot;</strong> to dynamically expand the system design.
           </p>
         </div>
 
-        <button onClick={triggerPacketFlow} disabled={isSimulatingPacket} className="btn-wispr-lilac">
-          <Play size={15} />
-          <span>{isSimulatingPacket ? 'Propagating Packet...' : 'Trace Voice Pipeline'}</span>
-        </button>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <button onClick={() => addCustomNode('Redis Cache Layer', 'storage')} className="btn-wispr-secondary" style={{ fontSize: '0.82rem' }}>
+            <Plus size={14} /> Add Redis Cache
+          </button>
+          <button onClick={triggerPacketFlow} disabled={isSimulatingPacket} className="btn-wispr-lilac" style={{ fontSize: '0.82rem' }}>
+            <Play size={14} />
+            <span>{isSimulatingPacket ? 'Tracing...' : 'Trace Pipeline'}</span>
+          </button>
+        </div>
       </div>
 
       {/* Main Split */}
@@ -125,67 +212,91 @@ export const VoiceArchitectureCanvas: React.FC<VoiceArchitectureCanvasProps> = (
         gridTemplateColumns: 'minmax(0, 2fr) minmax(280px, 1fr)',
         gap: '20px'
       }}>
-        {/* SVG Node Graph */}
-        <div className="wispr-card" style={{ padding: '20px', position: 'relative', minHeight: '420px', overflowX: 'auto', backgroundColor: '#faf8f0' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        {/* Dynamic Draggable SVG Canvas */}
+        <div
+          className="wispr-card"
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          style={{
+            padding: '20px',
+            position: 'relative',
+            minHeight: '440px',
+            overflow: 'hidden',
+            backgroundColor: '#faf8f0',
+            userSelect: 'none'
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               <Network size={16} color="#093c31" />
-              <h3 style={{ fontSize: '0.92rem', fontWeight: 700 }}>Neural-Acoustic Topology</h3>
+              <span style={{ fontSize: '0.88rem', fontWeight: 700 }}>Dynamic Draggable Nodes</span>
             </div>
-            <span className="mono-tag">6 NODES • ACTIVE</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              <Move size={12} />
+              <span>Click & drag any node</span>
+            </div>
           </div>
 
-          <div style={{ position: 'relative', width: '840px', height: '340px', margin: '0 auto' }}>
+          <div style={{ position: 'relative', width: '100%', height: '360px' }}>
+            {/* Dynamic Connecting Lines */}
             <svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', pointerEvents: 'none' }}>
-              <line x1="140" y1="190" x2="290" y2="190" stroke="#093c31" strokeWidth="2" strokeDasharray="4,4" />
-              <line x1="390" y1="170" x2="520" y2="110" stroke="#093c31" strokeWidth="2" />
-              <line x1="390" y1="200" x2="520" y2="270" stroke="#093c31" strokeWidth="2" />
-              <line x1="620" y1="110" x2="750" y2="110" stroke="#093c31" strokeWidth="2" />
-              <line x1="620" y1="280" x2="750" y2="280" stroke="#093c31" strokeWidth="2" />
-              <line x1="800" y1="130" x2="800" y2="240" stroke="#093c31" strokeWidth="2" />
+              {nodes.map(fromNode => {
+                const p1 = getNodeCenter(fromNode.id);
+                return fromNode.connections.map(targetId => {
+                  const p2 = getNodeCenter(targetId);
+                  if (p2.x === 0 && p2.y === 0) return null;
+                  return (
+                    <line
+                      key={`${fromNode.id}-${targetId}`}
+                      x1={p1.x}
+                      y1={p1.y}
+                      x2={p2.x}
+                      y2={p2.y}
+                      stroke="#093c31"
+                      strokeWidth="2"
+                      strokeDasharray="4,4"
+                      opacity="0.6"
+                    />
+                  );
+                });
+              })}
             </svg>
 
-            {NODES_DATA.map((node, index) => {
+            {/* Render Nodes */}
+            {nodes.map((node, index) => {
               const isSelected = selectedNode.id === node.id;
               const isStepActive = isSimulatingPacket && activeStep === index;
 
               return (
                 <div
                   key={node.id}
-                  onClick={() => {
-                    setSelectedNode(node);
-                    playTone(480, 'sine', 0.08);
-                  }}
+                  onMouseDown={(e) => handleMouseDown(e, node)}
                   style={{
                     position: 'absolute',
                     left: `${node.x}px`,
                     top: `${node.y}px`,
-                    width: '135px',
-                    padding: '12px',
-                    borderRadius: '12px',
-                    backgroundColor: isStepActive 
-                      ? '#ecdffc' 
-                      : isSelected 
-                      ? '#ffffff' 
-                      : '#ffffff',
-                    border: `1.5px solid ${isStepActive ? 'var(--border-dark)' : isSelected ? 'var(--border-dark)' : '#eae6db'}`,
-                    boxShadow: (isStepActive || isSelected) ? '0 4px 14px rgba(0,0,0,0.1)' : '0 1px 3px rgba(0,0,0,0.04)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease',
-                    zIndex: 10
+                    width: '130px',
+                    padding: '10px 12px',
+                    borderRadius: '10px',
+                    backgroundColor: isStepActive ? '#ecdffc' : '#ffffff',
+                    border: `1.5px solid ${isStepActive ? 'var(--border-dark)' : isSelected ? '#093c31' : '#eae6db'}`,
+                    boxShadow: isSelected ? '0 4px 14px rgba(0,0,0,0.1)' : '0 1px 3px rgba(0,0,0,0.04)',
+                    cursor: 'grab',
+                    transition: draggingNodeRef.current?.id === node.id ? 'none' : 'box-shadow 0.2s',
+                    zIndex: isSelected ? 20 : 10
                   }}
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
-                    {node.category === 'input' && <Sparkles size={14} color="#0284c7" />}
-                    {node.category === 'processing' && <Zap size={14} color="#7c3aed" />}
-                    {node.category === 'ai' && <Cpu size={14} color="#d97706" />}
-                    {node.category === 'execution' && <Terminal size={14} color="#059669" />}
-                    {node.category === 'storage' && <Layers size={14} color="#093c31" />}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px' }}>
+                    {node.category === 'input' && <Sparkles size={13} color="#0284c7" />}
+                    {node.category === 'processing' && <Zap size={13} color="#7c3aed" />}
+                    {node.category === 'ai' && <Cpu size={13} color="#d97706" />}
+                    {node.category === 'execution' && <Terminal size={13} color="#059669" />}
+                    {node.category === 'storage' && <Layers size={13} color="#093c31" />}
                     <span style={{ fontSize: '0.74rem', fontWeight: 700, color: '#111827' }}>
                       {node.title.split(' ')[0]}
                     </span>
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', lineHeight: '1.3' }}>
+                  <div style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', lineHeight: '1.2' }}>
                     {node.title}
                   </div>
                 </div>
@@ -220,12 +331,12 @@ export const VoiceArchitectureCanvas: React.FC<VoiceArchitectureCanvasProps> = (
               <span className="mono-tag">{selectedNode.category.toUpperCase()}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Throughput:</span>
-              <span style={{ color: '#059669', fontWeight: 600 }}>&lt; 85ms Latency</span>
+              <span style={{ color: 'var(--text-muted)' }}>Position:</span>
+              <span className="mono-tag">X: {Math.round(selectedNode.x)}px, Y: {Math.round(selectedNode.y)}px</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.82rem' }}>
-              <span style={{ color: 'var(--text-muted)' }}>Status:</span>
-              <span style={{ color: '#093c31', fontWeight: 600 }}>Streaming Web Audio</span>
+              <span style={{ color: 'var(--text-muted)' }}>Throughput:</span>
+              <span style={{ color: '#059669', fontWeight: 600 }}>&lt; 85ms Latency</span>
             </div>
           </div>
         </div>

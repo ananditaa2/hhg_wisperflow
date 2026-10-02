@@ -39,3 +39,16 @@ export interface GameObstacle {
   label: string;
   color?: string;
 }
+
+export interface CyberThreat {
+  id: string;
+  name: string;
+  voiceCounter: string;
+  aliases: string[];
+  x: number;
+  y: number;
+  speed: number;
+  color: string;
+  icon: string;
+}
+

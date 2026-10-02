@@ -5,6 +5,7 @@ import { VoiceGame } from './components/VoiceGame';
 import { WorkflowAutomations } from './components/WorkflowAutomations';
 import { VoiceArchitectureCanvas } from './components/VoiceArchitectureCanvas';
 import { useAudioAnalyzer } from './hooks/useAudioAnalyzer';
+import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { ActiveTab } from './types';
 import { Sparkles, ExternalLink, Heart } from 'lucide-react';
 
@@ -22,11 +23,17 @@ export function App() {
     playTone
   } = useAudioAnalyzer();
 
+  const speech = useSpeechRecognition((cmd) => {
+    injectSpeechInput(cmd);
+  });
+
   const handleToggleMic = () => {
     if (isActive) {
       stopListening();
+      speech.stopListening();
     } else {
       startListening();
+      speech.startListening();
     }
   };
 
@@ -49,8 +56,10 @@ export function App() {
             telemetry={telemetry}
             frequencyDataRef={frequencyDataRef}
             volume={volume}
-            onStartMic={startListening}
+            onStartMic={handleToggleMic}
             onInjectSpeech={injectSpeechInput}
+            liveTranscript={speech.transcript}
+            interimTranscript={speech.interimTranscript}
           />
         )}
 
@@ -58,17 +67,26 @@ export function App() {
           <VoiceGame
             isListening={isActive}
             volume={volume}
-            onStartMic={startListening}
+            onStartMic={handleToggleMic}
             playTone={playTone}
+            lastSpokenCommand={speech.lastCommand}
           />
         )}
 
         {activeTab === 'automations' && (
-          <WorkflowAutomations playTone={playTone} />
+          <WorkflowAutomations 
+            playTone={playTone}
+            lastSpokenCommand={speech.lastCommand}
+            isListening={isActive}
+            onStartMic={handleToggleMic}
+          />
         )}
 
         {activeTab === 'canvas' && (
-          <VoiceArchitectureCanvas playTone={playTone} />
+          <VoiceArchitectureCanvas 
+            playTone={playTone}
+            lastSpokenCommand={speech.lastCommand}
+          />
         )}
       </main>
 
