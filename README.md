@@ -13,10 +13,10 @@ Play Scream Runner with microphone volume and spoken commands. Talking or shouti
 Speak a UI or coding idea and see the transcript, normalized intent, and generated code. Use **Code** to inspect the snippet or **Run** to preview supported React components, hooks, and plain functions in an isolated iframe. Function previews accept JSON arguments. Generated code that imports an unsupported package shows an error instead of silently rendering a blank screen.
 
 ### Voice Triggers
-Say or type a command to save a note, add a to-do, read back open tasks, or start a focus timer. The four-step view shows how a phrase becomes an action. These examples update the page only; they do not run shell commands, deploy services, or scan project files.
+Say or type a command to save a note, add a to-do, read back open tasks, or start a focus timer. Notes, to-dos, and timer state persist in this browser's local storage. The four-step view shows how a phrase becomes an action. These examples update the page only; they do not run shell commands, deploy services, or scan project files.
 
 ### Pitch & Spectrum
-Use your microphone to see a detected note, frequency, and sharp/flat offset. Select Voice, Guitar, Ukulele, or Other. Guitar and ukulele modes compare the note with standard tuning strings. Play or sing one clear note at a time; this is not a chord detector or song recognizer. The spectrum shows sound energy and harmonics, while the level meter is relative rather than calibrated decibels.
+Use your microphone to see a detected note, frequency, and sharp/flat offset across approximately 25–1,000 Hz. Select Voice, Guitar, Bass, Ukulele, or Other. Guitar, bass, and ukulele modes compare the note with standard tuning strings. Play or sing one clear note at a time; this is not a chord detector or song recognizer. The spectrum shows sound energy and harmonics, while the level meter is relative rather than calibrated decibels.
 
 ## Run Locally
 

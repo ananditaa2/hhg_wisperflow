@@ -6,6 +6,8 @@ interface HeaderProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   isListening: boolean;
+  audioError: string;
+  isSpeechSupported: boolean;
   onToggleMic: () => void;
   telemetry: TelemetryData;
 }
@@ -14,6 +16,8 @@ export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   isListening,
+  audioError,
+  isSpeechSupported,
   onToggleMic,
   telemetry
 }) => {
@@ -56,11 +60,15 @@ export const Header: React.FC<HeaderProps> = ({
           ))}
         </nav>
 
-        <button onClick={onToggleMic} className={`mic-control${isListening ? ' is-live' : ''}`}>
-          {isListening ? <Mic size={17} /> : <MicOff size={17} />}
-          <span>{isListening ? `${telemetry.currentWpm || 165} WPM` : 'Mic off'}</span>
-          <span className="mic-state-dot" />
-        </button>
+        <div className="mic-controls">
+          <button type="button" onClick={onToggleMic} className={`mic-control${isListening ? ' is-live' : ''}`} aria-pressed={isListening}>
+            {isListening ? <Mic size={17} /> : <MicOff size={17} />}
+            <span>{isListening ? (telemetry.currentWpm ? `${telemetry.currentWpm} WPM` : 'Mic on') : 'Start mic'}</span>
+            <span className="mic-state-dot" />
+          </button>
+          {audioError && <span className="mic-feedback" role="alert" title={audioError}>{audioError}</span>}
+          {!audioError && isListening && !isSpeechSupported && <span className="mic-feedback" role="status" title="Speech recognition is unavailable; microphone level analysis is still active.">Speech unavailable</span>}
+        </div>
       </header>
     </div>
   );

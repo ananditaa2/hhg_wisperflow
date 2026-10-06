@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Activity, Mic, Volume2 } from 'lucide-react';
 
 type SpectrumBand = 'low' | 'mid' | 'high';
-type InstrumentMode = 'voice' | 'guitar' | 'ukulele' | 'other';
+type InstrumentMode = 'voice' | 'guitar' | 'ukulele' | 'bass' | 'other';
 
 interface AudioSpectrumProps {
   frequencyDataRef: React.MutableRefObject<Uint8Array>;
@@ -51,6 +51,13 @@ const BANDS: Record<SpectrumBand, { label: string; description: string; color: s
       { note: 'C4', frequency: 261.63 },
       { note: 'E4', frequency: 329.63 },
       { note: 'A4', frequency: 440 }
+    ],
+    bass: [
+      { note: 'B0', frequency: 30.87 },
+      { note: 'E1', frequency: 41.2 },
+      { note: 'A1', frequency: 55 },
+      { note: 'D2', frequency: 73.42 },
+      { note: 'G2', frequency: 98 }
     ]
   };
 
@@ -95,7 +102,7 @@ export const AudioSpectrum: React.FC<AudioSpectrumProps> = ({
     return () => window.clearInterval(interval);
   }, [sampleRate, timeDomainDataRef]);
 
-  const tuning = instrument === 'guitar' || instrument === 'ukulele' ? STANDARD_TUNINGS[instrument] : null;
+  const tuning = instrument === 'guitar' || instrument === 'ukulele' || instrument === 'bass' ? STANDARD_TUNINGS[instrument] : null;
   const closestString = pitch && tuning
     ? tuning.reduce((closest, string) => Math.abs(Math.log2(pitch.frequency / string.frequency)) < Math.abs(Math.log2(pitch.frequency / closest.frequency)) ? string : closest)
     : null;
@@ -113,7 +120,7 @@ export const AudioSpectrum: React.FC<AudioSpectrumProps> = ({
           </div>
           <h2 className="serif-headline" style={{ fontSize: '2.1rem', marginBottom: '6px' }}>Pitch &amp; spectrum</h2>
           <p style={{ color: 'var(--text-muted)', maxWidth: '720px', fontSize: '0.95rem' }}>
-            Sing, hum, or play one clear note to see its name, frequency, and tuning. Guitar and ukulele modes compare standard strings; chords are not analyzed as full chords.
+            Sing, hum, or play one clear note to see its name, frequency, and tuning. Guitar, bass, and ukulele modes compare standard strings; chords are not analyzed as full chords. Pitch detection covers approximately 25–1,000 Hz.
           </p>
         </div>
         {!isListening && (
@@ -140,6 +147,7 @@ export const AudioSpectrum: React.FC<AudioSpectrumProps> = ({
             ['voice', 'Voice'],
             ['guitar', 'Guitar'],
             ['ukulele', 'Ukulele'],
+            ['bass', 'Bass'],
             ['other', 'Other instrument']
           ] as const).map(([value, label]) => (
             <button
@@ -240,17 +248,21 @@ export const AudioSpectrum: React.FC<AudioSpectrumProps> = ({
 const NOTE_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 export function detectPitch(samples: Uint8Array, sampleRate: number): number | null {
-  let mean = 0;
-  for (const sample of samples) mean += sample;
-  mean /= samples.length;
+  const downsampledLength = Math.floor(samples.length / 2);
+  if (downsampledLength < 64) return null;
 
-  const centered = Float32Array.from(samples, sample => (sample - mean) / 128);
+  let mean = 0;
+  for (let index = 0; index < downsampledLength; index++) mean += samples[index * 2];
+  mean /= downsampledLength;
+
+  const centered = Float32Array.from({ length: downsampledLength }, (_, index) => (samples[index * 2] - mean) / 128);
   let energy = 0;
   for (const sample of centered) energy += sample * sample;
   if (Math.sqrt(energy / centered.length) < 0.025) return null;
 
-  const minLag = Math.max(2, Math.floor(sampleRate / 1000));
-  const maxLag = Math.min(Math.floor(sampleRate / 55), Math.floor(centered.length / 2));
+  const analysisSampleRate = sampleRate / 2;
+  const minLag = Math.max(2, Math.floor(analysisSampleRate / 1000) - 1);
+  const maxLag = Math.min(Math.floor(analysisSampleRate / 25) + 1, Math.floor(centered.length / 2) - 1);
   const correlations = new Float32Array(maxLag + 1);
 
   for (let lag = minLag; lag <= maxLag; lag++) {
@@ -276,7 +288,7 @@ export function detectPitch(samples: Uint8Array, sampleRate: number): number | n
 
     const denominator = previous - 2 * current + next;
     const offset = denominator ? Math.max(-0.5, Math.min(0.5, 0.5 * (previous - next) / denominator)) : 0;
-    return sampleRate / (lag + offset);
+    return analysisSampleRate / (lag + offset);
   }
 
   return null;

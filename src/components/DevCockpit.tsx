@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
-  Activity, Zap, Keyboard, Clock, Mic, Copy, Check, Code2, Play,
+  Activity, Keyboard, Clock, Mic, Copy, Check, Code2, Play,
   Wand2, Volume2, Sparkles, Loader2, RotateCcw
 } from 'lucide-react';
 import { TelemetryData } from '../types';
@@ -12,7 +12,6 @@ interface DevCockpitProps {
   frequencyDataRef: React.MutableRefObject<Uint8Array>;
   volume: number;
   onStartMic: () => void;
-  onInjectSpeech?: (text: string) => void;
   liveTranscript?: string;
   interimTranscript?: string;
   /** Most recent completed utterance — used for code generation */
@@ -734,7 +733,7 @@ export const HeroSection: React.FC = () => (
     </h1>
 
     <p style={{ fontSize:'1.2rem', color:'rgba(255,255,255,0.65)', maxWidth:540, marginBottom:36 }}>
-      Speak at 160 WPM. Wispr Flow turns your thoughts into polished production code instantly.
+      Speak an idea and follow it through from transcript to intent to generated code.
     </p>
 
     <div style={{ display:'flex', gap:14, flexWrap:'wrap', justifyContent:'center' }}>
@@ -811,7 +810,6 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
   frequencyDataRef,
   volume,
   onStartMic,
-  onInjectSpeech,
   liveTranscript = '',
   interimTranscript = '',
   lastSpokenCommand = '',
@@ -894,7 +892,6 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
   const handleSelectDemo = (sample: NormalizationSample, idx: number) => {
     setActiveDemoIdx(idx);
     setLiveOutput(null); // Clear live output when demo is selected
-    if (onInjectSpeech) onInjectSpeech(sample.raw);
   };
 
 
@@ -910,9 +907,9 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
       {/* ── 1. Hero ─────────────────────────────────────────────────────────── */}
       <section style={{ textAlign: 'center', padding: '24px 16px 8px', width: '100%' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '16px' }}>
-          <span className="genz-tag tag-yellow">⚡ 100% SPEECH TO CODE</span>
-          <span className="genz-tag tag-lilac">3.8x FLOW VELOCITY</span>
-          <span className="genz-tag tag-green">ZERO KEYBOARD TAX</span>
+          <span className="genz-tag tag-yellow">VOICE → CODE</span>
+          <span className="genz-tag tag-lilac">LIVE TRANSCRIPT</span>
+          <span className="genz-tag tag-green">CODE + RUN</span>
         </div>
 
         <h1 className="serif-headline" style={{ fontSize: 'clamp(3rem, 6.5vw, 5.2rem)', lineHeight: '1.04', marginBottom: '16px' }}>
@@ -1020,34 +1017,36 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
           <div className="genz-card" style={{ padding: '20px', backgroundColor: 'var(--accent-lilac)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>FLOW MULTIPLIER</span>
-              <Zap size={16} />
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>SESSION TIME</span>
+              <Clock size={16} />
             </div>
-            <div style={{ fontSize: '2.8rem', fontWeight: 900, lineHeight: '1' }}>{telemetry.flowMultiplier.toFixed(1)}x</div>
-            <p style={{ fontSize: '0.8rem', fontWeight: 700, marginTop: '8px' }}>⚡ vs 45 WPM Keyboard Typing</p>
+            <div style={{ fontSize: '2.8rem', fontWeight: 900, lineHeight: '1' }}>
+              {Math.floor(telemetry.sessionDuration / 60)}:{String(telemetry.sessionDuration % 60).padStart(2, '0')}
+            </div>
+            <p style={{ fontSize: '0.8rem', fontWeight: 700, marginTop: '8px' }}>Elapsed microphone session</p>
           </div>
 
           <div className="genz-card" style={{ padding: '20px', backgroundColor: 'var(--accent-matcha)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>BURST WPM</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>OBSERVED WPM</span>
               <Activity size={16} />
             </div>
-            <div style={{ fontSize: '2.8rem', fontWeight: 900, lineHeight: '1' }}>{telemetry.currentWpm || (isListening ? 165 : 0)}</div>
-            <p style={{ fontSize: '0.8rem', fontWeight: 700, marginTop: '8px' }}>🚀 Words / Minute Speech Rate</p>
+            <div style={{ fontSize: '2.8rem', fontWeight: 900, lineHeight: '1' }}>{telemetry.currentWpm}</div>
+            <p style={{ fontSize: '0.8rem', fontWeight: 700, marginTop: '8px' }}>Average recognized words per minute</p>
           </div>
 
           <div className="genz-card" style={{ padding: '20px', backgroundColor: 'var(--accent-cyan)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>KEYS SPARED</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>EST. CHARS</span>
               <Keyboard size={16} />
             </div>
             <div style={{ fontSize: '2.6rem', fontWeight: 900, lineHeight: '1' }}>{telemetry.keystrokesSaved.toLocaleString()}</div>
-            <p style={{ fontSize: '0.8rem', fontWeight: 700, marginTop: '8px' }}>🦾 Zero Wrist Strain / RSI</p>
+            <p style={{ fontSize: '0.8rem', fontWeight: 700, marginTop: '8px' }}>Approx. characters not typed</p>
           </div>
 
           <div className="genz-card" style={{ padding: '20px', backgroundColor: 'var(--accent-yellow)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>WORDS DICTATED</span>
+              <span style={{ fontSize: '0.75rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>RECOGNIZED WORDS</span>
               <Clock size={16} />
             </div>
             <div style={{ fontSize: '2.6rem', fontWeight: 900, lineHeight: '1' }}>{telemetry.wordsSpoken}</div>
@@ -1137,7 +1136,7 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '12px' }}>
                 <span style={{ fontSize: '1.2rem' }}>🎙️</span>
                 <span style={{ fontSize: '0.8rem', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.08em', color: isLive ? '#7c3aed' : 'inherit' }}>
-                  {isLive ? 'Your Live Voice Input' : 'Raw Conversational Speech (Spoken in 3s)'}
+                  {isLive ? 'Your Live Voice Input' : 'Sample transcript'}
                 </span>
                 {isLive && <span className="genz-tag" style={{ backgroundColor: '#a855f7', color: '#fff', fontSize: '0.68rem' }}>LIVE</span>}
               </div>
@@ -1146,7 +1145,7 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
               </p>
             </div>
             <div style={{ marginTop: '24px', fontSize: '0.85rem', color: isLive ? '#7c3aed' : '#093c31', fontWeight: 800 }}>
-              {isLive ? `✨ Detected language: ${displaySample.language ?? 'TypeScript'}` : '✓ Spoken at ~165 WPM with zero keystroke fatigue'}
+              {isLive ? `✨ Detected language: ${displaySample.language ?? 'TypeScript'}` : 'Sample text only; no microphone metrics are recorded.'}
             </div>
           </div>
 

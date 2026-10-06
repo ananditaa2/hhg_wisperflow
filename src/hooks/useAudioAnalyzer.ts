@@ -3,13 +3,13 @@ import { TelemetryData } from '../types';
 
 export function useAudioAnalyzer() {
   const [isActive, setIsActive] = useState<boolean>(false);
+  const [audioError, setAudioError] = useState<string>('');
   const [volume, setVolume] = useState<number>(0);
   const [sampleRate, setSampleRate] = useState<number>(44100);
   const [telemetry, setTelemetry] = useState<TelemetryData>({
     isRecording: false,
     wordsSpoken: 0,
     currentWpm: 0,
-    flowMultiplier: 1.0,
     keystrokesSaved: 0,
     sessionDuration: 0,
     volumeLevel: 0
@@ -23,10 +23,9 @@ export function useAudioAnalyzer() {
   const timerRef = useRef<number | null>(null);
 
   const frequencyDataRef = useRef<Uint8Array>(new Uint8Array(64));
-  const timeDomainDataRef = useRef<Uint8Array>(new Uint8Array(2048).fill(128));
-  const isSpeakingRef = useRef<boolean>(false);
+  const timeDomainDataRef = useRef<Uint8Array>(new Uint8Array(4096).fill(128));
   const wordsCounterRef = useRef<number>(0);
-  const speechCyclesRef = useRef<number>(0);
+  const sessionStartRef = useRef<number | null>(null);
 
   // Play synthesized tone for feedback
   const playTone = useCallback((freq: number = 440, type: OscillatorType = 'sine', duration: number = 0.15) => {
@@ -47,8 +46,12 @@ export function useAudioAnalyzer() {
     }
   }, []);
 
-  const startListening = useCallback(async () => {
+  const startListening = useCallback(async (): Promise<boolean> => {
+    setAudioError('');
     try {
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error('Microphone capture is not supported in this browser.');
+      }
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       streamRef.current = stream;
 
@@ -65,7 +68,7 @@ export function useAudioAnalyzer() {
       analyserRef.current = analyser;
 
       const pitchAnalyser = ctx.createAnalyser();
-      pitchAnalyser.fftSize = 2048;
+      pitchAnalyser.fftSize = 4096;
       pitchAnalyser.smoothingTimeConstant = 0.8;
       pitchAnalyserRef.current = pitchAnalyser;
 
@@ -76,24 +79,31 @@ export function useAudioAnalyzer() {
       frequencyDataRef.current = new Uint8Array(analyser.frequencyBinCount);
       timeDomainDataRef.current = new Uint8Array(pitchAnalyser.fftSize).fill(128);
       setSampleRate(ctx.sampleRate);
+      sessionStartRef.current = Date.now();
+      wordsCounterRef.current = 0;
       setIsActive(true);
+      setTelemetry(prev => ({
+        ...prev,
+        isRecording: true,
+        wordsSpoken: 0,
+        currentWpm: 0,
+        keystrokesSaved: 0,
+        sessionDuration: 0
+      }));
       playTone(600, 'triangle', 0.1);
 
       // Session Duration Timer
-      const startTime = Date.now();
       timerRef.current = window.setInterval(() => {
-        const elapsedSecs = Math.max(1, Math.floor((Date.now() - startTime) / 1000));
+        const elapsedSecs = Math.max(1, Math.floor((Date.now() - (sessionStartRef.current ?? Date.now())) / 1000));
         const words = wordsCounterRef.current;
         const wpm = Math.round((words / elapsedSecs) * 60);
-        const multiplier = Math.max(1.0, Number((wpm / 45).toFixed(1)));
         const savedKeys = words * 5.2; // approx 5.2 chars per word
 
         setTelemetry(prev => ({
           ...prev,
           isRecording: true,
           wordsSpoken: words,
-          currentWpm: Math.min(220, Math.max(0, wpm || (isSpeakingRef.current ? 150 : 0))),
-          flowMultiplier: multiplier,
+          currentWpm: Math.max(0, wpm),
           keystrokesSaved: Math.round(savedKeys),
           sessionDuration: elapsedSecs,
         }));
@@ -114,65 +124,37 @@ export function useAudioAnalyzer() {
         const normalizedVol = Math.min(100, Math.round((avg / 255) * 100 * 2.2));
         setVolume(normalizedVol);
 
-        // Voice Activity Detection (VAD) simulation
-        if (normalizedVol > 18) {
-          if (!isSpeakingRef.current) {
-            isSpeakingRef.current = true;
-          }
-          speechCyclesRef.current += 1;
-          if (speechCyclesRef.current % 12 === 0) {
-            wordsCounterRef.current += 1;
-          }
-        } else {
-          isSpeakingRef.current = false;
-        }
-
         animFrameRef.current = requestAnimationFrame(updateData);
       };
 
       updateData();
-    } catch {
-      // Fallback: If microphone access is denied or unavailable, use simulated audio synthesis
-      console.warn('Microphone permission not granted; falling back to interactive simulation mode.');
-      setIsActive(true);
-      playTone(480, 'sine', 0.1);
-
-      // Simulate natural speech wave
-      let phase = 0;
-      const startTime = Date.now();
-      timerRef.current = window.setInterval(() => {
-        const elapsedSecs = Math.max(1, Math.floor((Date.now() - startTime) / 1000));
-        wordsCounterRef.current += Math.random() > 0.3 ? 1 : 0;
-        const words = wordsCounterRef.current;
-        const wpm = Math.round((words / elapsedSecs) * 60) || 145;
-
-        setTelemetry(prev => ({
-          ...prev,
-          isRecording: true,
-          wordsSpoken: words,
-          currentWpm: wpm,
-          flowMultiplier: Number((wpm / 45).toFixed(1)),
-          keystrokesSaved: Math.round(words * 5.2),
-          sessionDuration: elapsedSecs,
-        }));
-      }, 600);
-
-      const simulateAudio = () => {
-        phase += 0.08;
-        const simVol = Math.floor(Math.sin(phase) * 35 + 40 + Math.random() * 20);
-        setVolume(simVol);
-
-        for (let i = 0; i < frequencyDataRef.current.length; i++) {
-          frequencyDataRef.current[i] = Math.max(
-            0,
-            Math.min(255, Math.floor(Math.sin(phase + i * 0.2) * 100 + simVol * 1.5))
-          );
-        }
-        timeDomainDataRef.current.fill(128);
-
-        animFrameRef.current = requestAnimationFrame(simulateAudio);
-      };
-      simulateAudio();
+      return true;
+    } catch (error) {
+      const message = error instanceof DOMException && error.name === 'NotAllowedError'
+        ? 'Microphone access was denied. Allow microphone access in your browser settings and try again.'
+        : error instanceof Error
+          ? error.message
+          : 'Microphone is unavailable in this browser.';
+      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
+      animFrameRef.current = null;
+      timerRef.current = null;
+      sessionStartRef.current = null;
+      streamRef.current?.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+      if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close().catch(() => {});
+      }
+      audioContextRef.current = null;
+      analyserRef.current = null;
+      pitchAnalyserRef.current = null;
+      frequencyDataRef.current.fill(0);
+      timeDomainDataRef.current.fill(128);
+      setAudioError(message);
+      setIsActive(false);
+      setVolume(0);
+      setTelemetry(prev => ({ ...prev, isRecording: false, currentWpm: 0 }));
+      return false;
     }
   }, [playTone]);
 
@@ -195,6 +177,7 @@ export function useAudioAnalyzer() {
     }
 
     setIsActive(false);
+    sessionStartRef.current = null;
     setVolume(0);
     frequencyDataRef.current.fill(0);
     timeDomainDataRef.current.fill(128);
@@ -203,20 +186,21 @@ export function useAudioAnalyzer() {
   }, [playTone]);
 
   const injectSpeechInput = useCallback((text: string) => {
-    const wordCount = text.trim().split(/\s+/).length;
+    const cleanedText = text.trim();
+    if (!cleanedText || !sessionStartRef.current) return;
+    const wordCount = cleanedText.split(/\s+/).length;
     wordsCounterRef.current += wordCount;
     const words = wordsCounterRef.current;
-    const wpm = Math.min(210, Math.max(140, Math.round(155 + Math.random() * 25)));
-    const multiplier = Number((wpm / 45).toFixed(1));
+    const elapsedSecs = Math.max(1, Math.floor((Date.now() - sessionStartRef.current) / 1000));
+    const wpm = Math.round((words / elapsedSecs) * 60);
     const savedKeys = Math.round(words * 5.2);
 
     setTelemetry(prev => ({
       ...prev,
       wordsSpoken: words,
       currentWpm: wpm,
-      flowMultiplier: multiplier,
       keystrokesSaved: savedKeys,
-      sessionDuration: Math.max(prev.sessionDuration, 14)
+      sessionDuration: Math.max(prev.sessionDuration, elapsedSecs)
     }));
     playTone(580, 'triangle', 0.1);
   }, [playTone]);
@@ -229,6 +213,7 @@ export function useAudioAnalyzer() {
 
   return {
     isActive,
+    audioError,
     volume,
     telemetry,
     frequencyDataRef,

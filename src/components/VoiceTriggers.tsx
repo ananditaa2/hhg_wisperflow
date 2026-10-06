@@ -17,6 +17,11 @@ interface TodoItem {
   complete: boolean;
 }
 
+interface NoteItem {
+  id: number;
+  text: string;
+}
+
 type VoiceAction =
   | { id: 'note'; label: string; text: string }
   | { id: 'task'; label: string; text: string }
@@ -56,6 +61,20 @@ function formatTime(seconds: number) {
   return `${minutes}:${remainingSeconds}`;
 }
 
+function loadSavedTimer() {
+  try {
+    const saved = JSON.parse(localStorage.getItem('yaplab-timer') ?? 'null');
+    if (!saved || !Number.isFinite(saved.seconds)) return { seconds: 0, running: false };
+    const elapsed = saved.running === true && Number.isFinite(saved.savedAt)
+      ? Math.max(0, Math.floor((Date.now() - saved.savedAt) / 1000))
+      : 0;
+    const seconds = Math.max(0, saved.seconds - elapsed);
+    return { seconds, running: Boolean(saved.running === true && seconds > 0) };
+  } catch {
+    return { seconds: 0, running: false };
+  }
+}
+
 export const VoiceTriggers: React.FC<VoiceTriggersProps> = ({
   playTone,
   lastSpokenCommand = '',
@@ -65,18 +84,57 @@ export const VoiceTriggers: React.FC<VoiceTriggersProps> = ({
   isSpeechSupported,
   onStartMic
 }) => {
-  const [notes, setNotes] = useState<Array<{ id: number; text: string }>>([]);
-  const [todos, setTodos] = useState<TodoItem[]>([]);
-  const [timerSeconds, setTimerSeconds] = useState(0);
-  const [timerRunning, setTimerRunning] = useState(false);
+  const [savedTimer] = useState(loadSavedTimer);
+  const [notes, setNotes] = useState<NoteItem[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('yaplab-notes') ?? '[]');
+      return Array.isArray(saved) ? saved.filter((note): note is NoteItem => Number.isFinite(note?.id) && typeof note?.text === 'string') : [];
+    } catch {
+      return [];
+    }
+  });
+  const [todos, setTodos] = useState<TodoItem[]>(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('yaplab-todos') ?? '[]');
+      return Array.isArray(saved) ? saved.filter((todo): todo is TodoItem => Number.isFinite(todo?.id) && typeof todo?.text === 'string' && typeof todo?.complete === 'boolean') : [];
+    } catch {
+      return [];
+    }
+  });
+  const [timerSeconds, setTimerSeconds] = useState(savedTimer.seconds);
+  const [timerRunning, setTimerRunning] = useState(savedTimer.running);
   const [heardCommand, setHeardCommand] = useState('');
   const [matchedAction, setMatchedAction] = useState('');
   const [result, setResult] = useState('Say one of the example phrases to run an action.');
   const [typedCommand, setTypedCommand] = useState('');
   const [activeStage, setActiveStage] = useState(0);
   const [flowStatus, setFlowStatus] = useState<'idle' | 'running' | 'complete' | 'unmatched'>('idle');
-  const handledTranscriptRef = useRef('');
+  const handledTranscriptRef = useRef(liveTranscript || lastSpokenCommand);
   const timeoutRefs = useRef<number[]>([]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('yaplab-notes', JSON.stringify(notes));
+    } catch {
+      setResult('Note storage is unavailable in this browser session.');
+    }
+  }, [notes]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('yaplab-todos', JSON.stringify(todos));
+    } catch {
+      setResult('To-do storage is unavailable in this browser session.');
+    }
+  }, [todos]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('yaplab-timer', JSON.stringify({ seconds: timerSeconds, running: timerRunning, savedAt: Date.now() }));
+    } catch {
+      setResult('Timer storage is unavailable in this browser session.');
+    }
+  }, [timerRunning, timerSeconds]);
 
   const clearPendingStages = useCallback(() => {
     timeoutRefs.current.forEach(window.clearTimeout);
@@ -188,10 +246,10 @@ export const VoiceTriggers: React.FC<VoiceTriggersProps> = ({
           </div>
           <h2 className="serif-headline" style={{ fontSize: '2.1rem', marginBottom: '6px' }}>Speak, and get something done</h2>
           <p style={{ color: 'var(--text-muted)', maxWidth: '720px', fontSize: '0.95rem' }}>
-            A voice trigger is a spoken shortcut. Say one of these commands while the mic is on: the page recognizes it, chooses an action, performs it, and shows the result below.
+            A voice trigger is a spoken shortcut. Say one of these commands while the mic is on: the page recognizes it, chooses an action, performs it, and shows the result below. Notes and to-dos are saved only in this browser.
           </p>
         </div>
-        <button onClick={onStartMic} className="btn-brutal-lilac" style={{ backgroundColor: isListening ? 'var(--accent-matcha)' : 'var(--accent-lilac)' }}>
+        <button type="button" aria-pressed={isListening} onClick={onStartMic} className="btn-brutal-lilac" style={{ backgroundColor: isListening ? 'var(--accent-matcha)' : 'var(--accent-lilac)' }}>
           <Mic size={16} /> {isListening ? 'Stop microphone' : 'Turn on microphone'}
         </button>
       </section>

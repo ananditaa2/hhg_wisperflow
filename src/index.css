@@ -206,6 +206,11 @@ body {
 
 .mic-control:hover { transform: translateY(-1px); }
 .mic-control.is-live { color: #171b18; background: var(--accent-matcha); }
+.mic-control:focus-visible,
+.floating-wispr-capsule:focus-visible {
+  outline: 3px solid #093c31;
+  outline-offset: 4px;
+}
 
 .mic-state-dot {
   width: 8px;
@@ -218,6 +223,21 @@ body {
   background: #f06449;
   box-shadow: 0 0 0 3px rgba(240, 100, 73, 0.16);
   animation: pulseDot 1.2s ease-in-out infinite;
+}
+
+.mic-controls {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+
+.mic-feedback {
+  max-width: 150px;
+  color: #9b3424;
+  font-size: 0.68rem;
+  font-weight: 800;
 }
 
 /* Fluid Full-Width Container */

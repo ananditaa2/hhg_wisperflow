@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { Header } from './components/Header';
 import { DevCockpit } from './components/DevCockpit';
 import { VoiceGame } from './components/VoiceGame';
@@ -10,9 +10,11 @@ import { ActiveTab } from './types';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('game');
+  const micTogglePendingRef = useRef(false);
 
   const {
     isActive,
+    audioError,
     volume,
     telemetry,
     frequencyDataRef,
@@ -30,13 +32,19 @@ export function App() {
 
   const speech = useSpeechRecognition(handleSpeechCommand);
 
-  const handleToggleMic = () => {
+  const handleToggleMic = async () => {
+    if (micTogglePendingRef.current) return;
     if (isActive) {
-      stopListening();
       speech.stopListening();
+      stopListening();
     } else {
-      startListening();
-      speech.startListening();
+      micTogglePendingRef.current = true;
+      speech.stopListening();
+      try {
+        if (await startListening()) speech.startListening();
+      } finally {
+        micTogglePendingRef.current = false;
+      }
     }
   };
 
@@ -47,6 +55,8 @@ export function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         isListening={isActive}
+        audioError={audioError}
+        isSpeechSupported={speech.isSupported}
         onToggleMic={handleToggleMic}
         telemetry={telemetry}
       />
@@ -60,7 +70,6 @@ export function App() {
             frequencyDataRef={frequencyDataRef}
             volume={volume}
             onStartMic={handleToggleMic}
-            onInjectSpeech={injectSpeechInput}
             liveTranscript={speech.transcript}
             interimTranscript={speech.interimTranscript}
             lastSpokenCommand={speech.lastCommand}
@@ -103,21 +112,27 @@ export function App() {
       </main>
 
       {/* Floating voice-input control */}
-      <div
+      <button
+        type="button"
         className="floating-wispr-capsule"
         onClick={handleToggleMic}
+        aria-label={isActive ? 'Turn off microphone' : 'Turn on microphone'}
+        aria-pressed={isActive}
         title={isActive ? 'Microphone active (click to mute)' : 'Start voice input'}
         style={{
-          backgroundColor: isActive ? '#bbf7d0' : 'var(--accent-lilac)'
+          backgroundColor: isActive ? '#bbf7d0' : 'var(--accent-lilac)',
+          padding: 0,
+          color: 'var(--text-main)',
+          font: 'inherit'
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+        <div aria-hidden="true" style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
           <div style={{ width: '2.5px', height: isActive ? '14px' : '10px', backgroundColor: '#111827', borderRadius: '1px', transition: 'height 0.2s' }} />
           <div style={{ width: '2.5px', height: isActive ? '22px' : '16px', backgroundColor: '#111827', borderRadius: '1px', transition: 'height 0.2s' }} />
           <div style={{ width: '2.5px', height: isActive ? '18px' : '12px', backgroundColor: '#111827', borderRadius: '1px', transition: 'height 0.2s' }} />
           <div style={{ width: '2.5px', height: isActive ? '10px' : '6px', backgroundColor: '#111827', borderRadius: '1px', transition: 'height 0.2s' }} />
         </div>
-      </div>
+      </button>
 
       {/* Footer */}
       <footer style={{

@@ -4,7 +4,6 @@ export interface TelemetryData {
   isRecording: boolean;
   wordsSpoken: number;
   currentWpm: number;
-  flowMultiplier: number;
   keystrokesSaved: number;
   sessionDuration: number;
   volumeLevel: number;
@@ -30,4 +29,3 @@ export interface CyberThreat {
   color: string;
   icon: string;
 }
-
