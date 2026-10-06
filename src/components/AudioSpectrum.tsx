@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Activity, Mic, Volume2 } from 'lucide-react';
 
 type SpectrumBand = 'low' | 'mid' | 'high';
+type InstrumentMode = 'voice' | 'guitar' | 'ukulele' | 'other';
 
 interface AudioSpectrumProps {
   frequencyDataRef: React.MutableRefObject<Uint8Array>;
@@ -36,6 +37,23 @@ const BANDS: Record<SpectrumBand, { label: string; description: string; color: s
   }
 };
 
+  const STANDARD_TUNINGS = {
+    guitar: [
+      { note: 'E2', frequency: 82.41 },
+      { note: 'A2', frequency: 110 },
+      { note: 'D3', frequency: 146.83 },
+      { note: 'G3', frequency: 196 },
+      { note: 'B3', frequency: 246.94 },
+      { note: 'E4', frequency: 329.63 }
+    ],
+    ukulele: [
+      { note: 'G4', frequency: 392 },
+      { note: 'C4', frequency: 261.63 },
+      { note: 'E4', frequency: 329.63 },
+      { note: 'A4', frequency: 440 }
+    ]
+  };
+
 export const AudioSpectrum: React.FC<AudioSpectrumProps> = ({
   frequencyDataRef,
   timeDomainDataRef,
@@ -46,6 +64,7 @@ export const AudioSpectrum: React.FC<AudioSpectrumProps> = ({
 }) => {
   const [spectrum, setSpectrum] = useState<number[]>([]);
   const [pitch, setPitch] = useState<{ frequency: number; note: string; cents: number } | null>(null);
+  const [instrument, setInstrument] = useState<InstrumentMode>('voice');
 
   useEffect(() => {
     const sample = () => {
@@ -76,6 +95,14 @@ export const AudioSpectrum: React.FC<AudioSpectrumProps> = ({
     return () => window.clearInterval(interval);
   }, [sampleRate, timeDomainDataRef]);
 
+  const tuning = instrument === 'guitar' || instrument === 'ukulele' ? STANDARD_TUNINGS[instrument] : null;
+  const closestString = pitch && tuning
+    ? tuning.reduce((closest, string) => Math.abs(Math.log2(pitch.frequency / string.frequency)) < Math.abs(Math.log2(pitch.frequency / closest.frequency)) ? string : closest)
+    : null;
+  const stringCents = pitch && closestString
+    ? Math.round(1200 * Math.log2(pitch.frequency / closestString.frequency))
+    : null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%' }}>
       <section className="genz-card" style={{ padding: '24px 28px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
@@ -86,7 +113,7 @@ export const AudioSpectrum: React.FC<AudioSpectrumProps> = ({
           </div>
           <h2 className="serif-headline" style={{ fontSize: '2.1rem', marginBottom: '6px' }}>Pitch &amp; spectrum</h2>
           <p style={{ color: 'var(--text-muted)', maxWidth: '720px', fontSize: '0.95rem' }}>
-            Hold a steady note to see its nearest musical pitch and whether you are sharp or flat. This gives you a simple singing-practice tuner; it does not grade your voice or identify a song.
+            Sing, hum, or play one clear note to see its name, frequency, and tuning. Guitar and ukulele modes compare standard strings; chords are not analyzed as full chords.
           </p>
         </div>
         {!isListening && (
@@ -100,7 +127,7 @@ export const AudioSpectrum: React.FC<AudioSpectrumProps> = ({
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Activity size={18} color="#093c31" />
-            <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Live singing tuner</h3>
+            <h3 style={{ fontSize: '1rem', fontWeight: 800 }}>Live chromatic tuner</h3>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '7px', fontSize: '0.85rem', fontWeight: 700 }}>
             <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: isListening ? '#16a34a' : '#9ca3af' }} />
@@ -108,11 +135,35 @@ export const AudioSpectrum: React.FC<AudioSpectrumProps> = ({
           </div>
         </div>
 
+        <div role="group" aria-label="Sound source" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '16px' }}>
+          {([
+            ['voice', 'Voice'],
+            ['guitar', 'Guitar'],
+            ['ukulele', 'Ukulele'],
+            ['other', 'Other instrument']
+          ] as const).map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              aria-pressed={instrument === value}
+              onClick={() => setInstrument(value)}
+              style={{ padding: '7px 11px', border: '1.5px solid var(--border-black)', borderRadius: '6px', backgroundColor: instrument === value ? 'var(--accent-matcha)' : '#ffffff', color: 'var(--text-main)', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
         <div aria-live="polite" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', alignItems: 'center', gap: '20px', padding: '18px', marginBottom: '16px', backgroundColor: '#f8fafc', border: '2px solid var(--border-black)', borderRadius: '8px' }}>
           <div>
             <div style={{ fontSize: '0.72rem', fontWeight: 900, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Detected note</div>
             <div style={{ fontSize: '2.8rem', lineHeight: 1.1, fontWeight: 900, fontVariantNumeric: 'tabular-nums' }}>{pitch?.note ?? '—'}</div>
-            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 700 }}>{pitch ? `${pitch.frequency.toFixed(0)} Hz` : 'Hum a steady note'}</div>
+            <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 700 }}>{pitch ? `${pitch.frequency.toFixed(0)} Hz` : instrument === 'voice' ? 'Hum a steady note' : 'Play a single steady note'}</div>
+            {closestString && stringCents !== null && (
+              <div style={{ marginTop: '8px', fontSize: '0.82rem', fontWeight: 800, color: 'var(--text-main)' }}>
+                Nearest string: {closestString.note} ({closestString.frequency.toFixed(1)} Hz), {stringCents > 0 ? '+' : ''}{stringCents} cents
+              </div>
+            )}
           </div>
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px', marginBottom: '8px', fontSize: '0.8rem', fontWeight: 900 }}>
@@ -129,7 +180,7 @@ export const AudioSpectrum: React.FC<AudioSpectrumProps> = ({
               )}
             </div>
             <div style={{ marginTop: '8px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-              {pitch ? (Math.abs(pitch.cents) <= 5 ? 'Right on the note. Keep holding it.' : pitch.cents < 0 ? 'Raise the pitch slightly.' : 'Lower the pitch slightly.') : 'Sing or hum one sustained vowel, such as “ah”.'}
+              {pitch ? (Math.abs(pitch.cents) <= 5 ? 'Right on the note. Keep holding it.' : pitch.cents < 0 ? 'Raise the pitch slightly.' : 'Lower the pitch slightly.') : instrument === 'voice' ? 'Sing or hum one sustained vowel, such as “ah”.' : 'Pluck one string and let it ring clearly.'}
             </div>
           </div>
         </div>
@@ -174,12 +225,12 @@ export const AudioSpectrum: React.FC<AudioSpectrumProps> = ({
 
       <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
         <div className="genz-card" style={{ padding: '18px' }}>
-          <strong style={{ display: 'block', marginBottom: '6px' }}>How to use the tuner</strong>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.5 }}>Sing a comfortable, sustained note. Match the named note, then adjust until the marker is near the center.</span>
+          <strong style={{ display: 'block', marginBottom: '6px' }}>Play one clear note</strong>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.5 }}>{instrument === 'voice' ? 'Sing or hum a steady note and adjust until the marker is centered.' : `Pluck one ${instrument === 'other' ? 'instrument' : instrument} string at a time. The tuner shows note and frequency${tuning ? ' plus the nearest standard string' : ''}.`}</span>
         </div>
         <div className="genz-card" style={{ padding: '18px' }}>
-          <strong style={{ display: 'block', marginBottom: '6px' }}>What the spectrum adds</strong>
-          <span style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.5 }}>The pitch is the note you sing. The bars show its harmonics and changing sound energy; they are visual context, not a vocal-quality score.</span>
+          <strong style={{ display: 'block', marginBottom: '6px' }}>What this measures</strong>
+          <span style={{ color: 'var(--text-muted)', fontSize: '0.88rem', lineHeight: 1.5 }}>Use note and frequency for tuning or pitch practice. Spectrum bars show harmonics, not a song recognizer or chord detector.</span>
         </div>
       </section>
     </div>

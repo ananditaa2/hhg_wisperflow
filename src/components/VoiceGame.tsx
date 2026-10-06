@@ -866,10 +866,10 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
             marginTop: '8px',
             lineHeight: 1.1
           }}>
-            Wispr Voice Arcade 🕹️
+            YapLab Arcade 🕹️
           </h1>
           <p style={{ color: '#4b5563', fontSize: '0.98rem', marginTop: '4px', fontWeight: 500 }}>
-            No boring forms, no technical setup. Just speak, scream, or whisper into your mic to play!
+            Talk or shout to jump. Say “blast” to clear obstacles and “shield” to protect your run; collect coins as you go.
           </p>
         </div>
 

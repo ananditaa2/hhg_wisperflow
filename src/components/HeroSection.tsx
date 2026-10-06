@@ -33,7 +33,7 @@ export const HeroSection: React.FC = () => (
     </h1>
 
     <p style={{ fontSize: '1.2rem', color: 'rgba(255,255,255,0.72)', maxWidth: 540, marginBottom: 36 }}>
-      Speak at 160 WPM. Wispr Flow turns your thoughts into polished production code instantly.
+      Say what you want to make. YapLab turns your idea into a clear, code-ready starting point.
     </p>
 
     <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center' }}>

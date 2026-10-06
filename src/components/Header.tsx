@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Activity, Zap, PlayCircle, Network } from 'lucide-react';
+import { Activity, AudioLines, Gamepad2, Mic, MicOff, Sparkles, Workflow } from 'lucide-react';
 import { ActiveTab, TelemetryData } from '../types';
 
 interface HeaderProps {
@@ -17,154 +17,51 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleMic,
   telemetry
 }) => {
+  const navigation = [
+    { id: 'game' as const, label: 'Arcade', detail: 'Scream Runner', icon: Gamepad2, className: 'nav-arcade' },
+    { id: 'cockpit' as const, label: 'Studio', detail: 'Voice → Code', icon: Activity, className: 'nav-studio' },
+    { id: 'automations' as const, label: 'Triggers', detail: 'Speak → Action', icon: Workflow, className: 'nav-triggers' },
+    { id: 'canvas' as const, label: 'Pitch', detail: 'Tune anything', icon: AudioLines, className: 'nav-pitch' }
+  ];
+
   return (
-    <div style={{ position: 'sticky', top: 0, zIndex: 60, width: '100%' }}>
-      {/* 1. Gen Z Marquee Top Banner */}
-      <div className="marquee-container">
-        <div className="marquee-content">
-          <span>⚡ WISPR FLOW × GOA HACKER HOUSE 2026 • FROM YAPS TO APPS • KEYBOARDS ARE OFFICIALLY OBSOLETE • 3.8x DEV VELOCITY • 100% VOICE CODING SPEEDRUN •&nbsp;</span>
-          <span>⚡ WISPR FLOW × GOA HACKER HOUSE 2026 • FROM YAPS TO APPS • KEYBOARDS ARE OFFICIALLY OBSOLETE • 3.8x DEV VELOCITY • 100% VOICE CODING SPEEDRUN •&nbsp;</span>
+    <div className="site-shell">
+      <div className="topline">
+        <span><Sparkles size={13} /> IDEAS IN. THINGS OUT.</span>
+        <span className="topline-note">A voice-first creative lab</span>
+      </div>
+      <header className="site-header">
+        <div className="brand-lockup" aria-label="YapLab home">
+          <span className="brand-symbol"><AudioLines size={22} strokeWidth={2.5} /></span>
+          <span className="brand-copy">
+            <span className="brand-name">YapLab<span>.</span></span>
+            <span className="brand-descriptor">VOICE-FIRST CREATIVE LAB</span>
+          </span>
         </div>
-      </div>
 
-      {/* 2. Full-Width Navbar Container */}
-      <div style={{ padding: '12px 24px', backgroundColor: 'rgba(250, 247, 238, 0.95)', backdropFilter: 'blur(12px)', borderBottom: '2px solid var(--border-black)' }}>
-        <header style={{
-          width: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          flexWrap: 'wrap',
-          gap: '16px'
-        }}>
-          {/* Brand Logo & Tags */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '3px', height: '22px' }}>
-              <div style={{ width: '4px', height: '12px', backgroundColor: '#18181b', borderRadius: '2px' }} />
-              <div style={{ width: '4px', height: '22px', backgroundColor: '#18181b', borderRadius: '2px' }} />
-              <div style={{ width: '4px', height: '16px', backgroundColor: '#18181b', borderRadius: '2px' }} />
-              <div style={{ width: '4px', height: '9px', backgroundColor: '#18181b', borderRadius: '2px' }} />
-            </div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px' }}>
-              <span style={{ fontSize: '1.45rem', fontWeight: 900, color: '#18181b', letterSpacing: '-0.04em' }}>
-                Flow
+        <nav className="site-navigation" aria-label="Main features">
+          {navigation.map(({ id, label, detail, icon: Icon, className }) => (
+            <button
+              key={id}
+              onClick={() => setActiveTab(id)}
+              className={`nav-tab ${className}${activeTab === id ? ' is-active' : ''}`}
+              aria-current={activeTab === id ? 'page' : undefined}
+            >
+              <Icon size={17} strokeWidth={2.2} />
+              <span className="nav-tab-copy">
+                <span className="nav-tab-title">{label}</span>
+                <span className="nav-tab-detail">{detail}</span>
               </span>
-              <span className="serif-italic" style={{ fontSize: '1.1rem', color: '#093c31', fontWeight: 600 }}>
-                studio
-              </span>
-            </div>
-          </div>
-
-          {/* 4 Pillars Navigation Pills */}
-          <nav className="site-navigation" style={{
-            display: 'flex',
-            backgroundColor: '#ffffff',
-            borderRadius: '12px',
-            padding: '4px',
-            gap: '4px',
-            border: '2px solid var(--border-black)',
-            boxShadow: '3px 3px 0px var(--border-black)'
-          }}>
-            <button
-              onClick={() => setActiveTab('game')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 18px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: activeTab === 'game' ? 'var(--accent-matcha)' : 'transparent',
-                color: '#18181b',
-                fontWeight: activeTab === 'game' ? 900 : 600,
-                fontSize: '0.88rem',
-                cursor: 'pointer',
-                transition: 'all 0.1s ease'
-              }}
-            >
-              <Zap size={15} />
-              <span>🎮 Voice Arcade 🕹️</span>
             </button>
+          ))}
+        </nav>
 
-            <button
-              onClick={() => setActiveTab('cockpit')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: activeTab === 'cockpit' ? 'var(--accent-lilac)' : 'transparent',
-                color: '#18181b',
-                fontWeight: activeTab === 'cockpit' ? 800 : 600,
-                fontSize: '0.86rem',
-                cursor: 'pointer',
-                transition: 'all 0.1s ease'
-              }}
-            >
-              <Activity size={15} />
-              <span>Voice Studio</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('automations')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: activeTab === 'automations' ? 'var(--accent-cyan)' : 'transparent',
-                color: '#18181b',
-                fontWeight: activeTab === 'automations' ? 800 : 600,
-                fontSize: '0.86rem',
-                cursor: 'pointer',
-                transition: 'all 0.1s ease'
-              }}
-            >
-              <PlayCircle size={15} />
-              <span>Voice Triggers</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('canvas')}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px',
-                padding: '8px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: activeTab === 'canvas' ? 'var(--accent-peach)' : 'transparent',
-                color: '#18181b',
-                fontWeight: activeTab === 'canvas' ? 800 : 600,
-                fontSize: '0.86rem',
-                cursor: 'pointer',
-                transition: 'all 0.1s ease'
-              }}
-            >
-              <Network size={15} />
-              <span>Pitch &amp; Spectrum</span>
-            </button>
-          </nav>
-
-          {/* Right Controls */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <button
-              onClick={onToggleMic}
-              className="btn-brutal-lilac"
-              style={{
-                backgroundColor: isListening ? 'var(--accent-matcha)' : 'var(--accent-lilac)'
-              }}
-            >
-              {isListening ? <Mic size={16} /> : <MicOff size={16} />}
-              <span>{isListening ? `${telemetry.currentWpm || 165} WPM Active` : 'Start Voice Input'}</span>
-            </button>
-          </div>
-        </header>
-      </div>
+        <button onClick={onToggleMic} className={`mic-control${isListening ? ' is-live' : ''}`}>
+          {isListening ? <Mic size={17} /> : <MicOff size={17} />}
+          <span>{isListening ? `${telemetry.currentWpm || 165} WPM` : 'Mic off'}</span>
+          <span className="mic-state-dot" />
+        </button>
+      </header>
     </div>
   );
 };

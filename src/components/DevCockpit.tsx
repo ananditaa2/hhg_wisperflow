@@ -921,7 +921,7 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
         </h1>
 
         <p style={{ fontSize: '1.25rem', color: 'var(--text-muted)', maxWidth: '780px', margin: '0 auto 24px', lineHeight: '1.6' }}>
-          Speak high-level architectural intent at 160+ WPM. Wispr turns messy, conversational developer thoughts into polished production prompts and code — <strong>live, as you speak</strong>.
+          Describe what you want to build. Watch your speech become a transcript, a clearer engineering brief, and generated code. Switch between <strong>Code</strong> and <strong>Run</strong> to inspect the source or test its output.
         </p>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
@@ -1064,8 +1064,8 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Wand2 size={24} color="#093c31" />
             <h3 className="serif-headline" style={{ fontSize: '2rem' }}>
-              Wispr Magic Normalizer&nbsp;
-              <span className="serif-italic" style={{ fontSize: '1.4rem' }}>(Speech → Code)</span>
+              YapLab Code Lab&nbsp;
+              <span className="serif-italic" style={{ fontSize: '1.4rem' }}>(Speech → Output)</span>
             </h3>
           </div>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1074,14 +1074,14 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
                 ✨ LIVE FROM YOUR VOICE
               </span>
             )}
-            <span className="genz-tag tag-lilac">SECRET SAUCE</span>
+            <span className="genz-tag tag-lilac">VOICE → RUN</span>
           </div>
         </div>
 
         <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginBottom: '20px' }}>
           {isLive
             ? '🎙️ Code below was generated live from your spoken input. Speak something else to regenerate instantly.'
-            : 'Wispr Flow converts fast, rambling speech into crystal-clear engineering prompts + production code. Activate mic and speak any coding intent!'}
+            : 'Speak an idea to generate its intent and code. Use Code to inspect the source, or Run to preview components, hooks, and function results.'}
         </p>
 
         {/* Demo sample tabs (shown when no live output) */}

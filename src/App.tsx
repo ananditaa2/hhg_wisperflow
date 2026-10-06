@@ -102,11 +102,11 @@ export function App() {
         )}
       </main>
 
-      {/* Floating Lilac Wispr Capsule Widget (Matches Screenshot Bottom-Left) */}
+      {/* Floating voice-input control */}
       <div
         className="floating-wispr-capsule"
         onClick={handleToggleMic}
-        title={isActive ? 'Microphone Active (Click to mute)' : 'Click to start Wispr Voice Input'}
+        title={isActive ? 'Microphone active (click to mute)' : 'Start voice input'}
         style={{
           backgroundColor: isActive ? '#bbf7d0' : 'var(--accent-lilac)'
         }}
@@ -138,8 +138,8 @@ export function App() {
           fontWeight: 600
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <span className="genz-tag" style={{ backgroundColor: 'var(--accent-matcha)' }}>100% VOICE CODED</span>
-            <span>Voice-driven tools, made for play.</span>
+            <span className="genz-tag" style={{ backgroundColor: 'var(--accent-matcha)' }}>YAPLAB</span>
+            <span>Talk it into something.</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
