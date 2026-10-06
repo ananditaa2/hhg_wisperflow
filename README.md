@@ -1,13 +1,11 @@
 # ⚡ WisprVerse — The Voice-First AI Developer & Interactive Suite
 
-[![Wispr Flow](https://img.shields.io/badge/Built%20With-Wispr%20Flow-8b5cf6?style=for-the-badge&logo=soundcharts&logoColor=white)](https://ref.wisprflow.ai/hhg)
 [![React](https://img.shields.io/badge/React-18%2F19-61dafb?style=for-the-badge&logo=react&logoColor=black)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org)
 [![Vite](https://img.shields.io/badge/Vite-6.1-646cff?style=for-the-badge&logo=vite&logoColor=white)](https://vite.dev)
 [![Web Audio API](https://img.shields.io/badge/Web%20Audio%20API-Native%20FFT-10b981?style=for-the-badge)](https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API)
 
 > **Submission for the Wispr Flow Shortlisting Task (Goa Hacker House)**  
-> ⚠️ **Mandatory Referral Account:** Created via [ref.wisprflow.ai/hhg](https://ref.wisprflow.ai/hhg)  
 > 🎙️ **Voice-Driven Development:** Built 100% hands-free using Wispr Flow speech dictation into terminal commands, AI agent orchestrators, and Git.
 
 ---
@@ -102,7 +100,6 @@ Visit `http://localhost:5173` in your browser. Click **"Start Audio"** in the to
 ## 🎥 Video Submission & Links
 
 - **Video Demo Link:** *[Insert your Unlisted YouTube or Loom Link]*
-- **Wispr Flow Referral:** [ref.wisprflow.ai/hhg](https://ref.wisprflow.ai/hhg)
 - **Submission Form:** [https://forms.gle/Lv9wF8gYVHdEqfJW8](https://forms.gle/Lv9wF8gYVHdEqfJW8)
 
 ---

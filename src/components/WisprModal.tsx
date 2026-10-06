@@ -68,42 +68,6 @@ export const WisprModal: React.FC<WisprModalProps> = ({ isOpen, onClose }) => {
           </div>
         </div>
 
-        {/* Mandatory Link Alert */}
-        <div style={{
-          backgroundColor: 'rgba(239, 68, 68, 0.1)',
-          border: '1px solid rgba(239, 68, 68, 0.3)',
-          borderRadius: '10px',
-          padding: '14px',
-          marginBottom: '20px'
-        }}>
-          <div style={{ color: '#f87171', fontWeight: 700, fontSize: '0.88rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            ⚠️ CRITICAL MANDATORY REQUIREMENT:
-          </div>
-          <div style={{ fontSize: '0.82rem', color: '#fca5a5', marginTop: '4px' }}>
-            Your Wispr Flow account MUST be registered using the referral link below, or your entry will be disqualified:
-          </div>
-          <a
-            href="https://ref.wisprflow.ai/hhg"
-            target="_blank"
-            rel="noreferrer"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              marginTop: '6px',
-              color: '#fff',
-              backgroundColor: '#dc2626',
-              padding: '6px 14px',
-              borderRadius: '6px',
-              textDecoration: 'none',
-              fontWeight: 700,
-              fontSize: '0.82rem'
-            }}
-          >
-            Create / Verify Wispr Account: ref.wisprflow.ai/hhg <ExternalLink size={14} />
-          </a>
-        </div>
-
         {/* Video Script Breakdown */}
         <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Video size={18} color="var(--accent-purple)" />

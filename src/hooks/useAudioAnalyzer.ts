@@ -4,6 +4,7 @@ import { TelemetryData } from '../types';
 export function useAudioAnalyzer() {
   const [isActive, setIsActive] = useState<boolean>(false);
   const [volume, setVolume] = useState<number>(0);
+  const [sampleRate, setSampleRate] = useState<number>(44100);
   const [telemetry, setTelemetry] = useState<TelemetryData>({
     isRecording: false,
     wordsSpoken: 0,
@@ -16,11 +17,13 @@ export function useAudioAnalyzer() {
 
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
+  const pitchAnalyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animFrameRef = useRef<number | null>(null);
   const timerRef = useRef<number | null>(null);
 
   const frequencyDataRef = useRef<Uint8Array>(new Uint8Array(64));
+  const timeDomainDataRef = useRef<Uint8Array>(new Uint8Array(2048).fill(128));
   const isSpeakingRef = useRef<boolean>(false);
   const wordsCounterRef = useRef<number>(0);
   const speechCyclesRef = useRef<number>(0);
@@ -61,10 +64,18 @@ export function useAudioAnalyzer() {
       analyser.smoothingTimeConstant = 0.8;
       analyserRef.current = analyser;
 
+      const pitchAnalyser = ctx.createAnalyser();
+      pitchAnalyser.fftSize = 2048;
+      pitchAnalyser.smoothingTimeConstant = 0.8;
+      pitchAnalyserRef.current = pitchAnalyser;
+
       const source = ctx.createMediaStreamSource(stream);
       source.connect(analyser);
+      source.connect(pitchAnalyser);
 
       frequencyDataRef.current = new Uint8Array(analyser.frequencyBinCount);
+      timeDomainDataRef.current = new Uint8Array(pitchAnalyser.fftSize).fill(128);
+      setSampleRate(ctx.sampleRate);
       setIsActive(true);
       playTone(600, 'triangle', 0.1);
 
@@ -90,8 +101,9 @@ export function useAudioAnalyzer() {
 
       // Animation loop for audio sampling
       const updateData = () => {
-        if (!analyserRef.current) return;
+        if (!analyserRef.current || !pitchAnalyserRef.current) return;
         analyserRef.current.getByteFrequencyData(frequencyDataRef.current as any);
+        pitchAnalyserRef.current.getByteTimeDomainData(timeDomainDataRef.current as any);
 
         // Calculate average amplitude
         let sum = 0;
@@ -156,6 +168,7 @@ export function useAudioAnalyzer() {
             Math.min(255, Math.floor(Math.sin(phase + i * 0.2) * 100 + simVol * 1.5))
           );
         }
+        timeDomainDataRef.current.fill(128);
 
         animFrameRef.current = requestAnimationFrame(simulateAudio);
       };
@@ -183,6 +196,8 @@ export function useAudioAnalyzer() {
 
     setIsActive(false);
     setVolume(0);
+    frequencyDataRef.current.fill(0);
+    timeDomainDataRef.current.fill(128);
     setTelemetry(prev => ({ ...prev, isRecording: false, currentWpm: 0 }));
     playTone(320, 'sine', 0.1);
   }, [playTone]);
@@ -217,6 +232,8 @@ export function useAudioAnalyzer() {
     volume,
     telemetry,
     frequencyDataRef,
+    timeDomainDataRef,
+    sampleRate,
     startListening,
     stopListening,
     injectSpeechInput,

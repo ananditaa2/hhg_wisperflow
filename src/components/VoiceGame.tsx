@@ -219,7 +219,7 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
   onStartMic,
   lastSpokenCommand = ''
 }) => {
-  const [activeMode, setActiveMode] = useState<GameMode>('runner');
+  const [activeMode] = useState<GameMode>('runner');
   const [sensitivity, setSensitivity] = useState<number>(1.4); // volume multiplier
 
   /* ═══════════════════════════════════════════════════════════════════════
@@ -873,73 +873,6 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
           </p>
         </div>
 
-        {/* Game Mode Selector Pills */}
-        <div style={{
-          display: 'flex',
-          gap: '8px',
-          backgroundColor: '#ffffff',
-          padding: '6px',
-          borderRadius: '16px',
-          border: '2px solid var(--border-black)',
-          boxShadow: '4px 4px 0px var(--border-black)'
-        }}>
-          <button
-            onClick={() => setActiveMode('runner')}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '10px',
-              border: 'none',
-              backgroundColor: activeMode === 'runner' ? 'var(--accent-matcha)' : 'transparent',
-              fontWeight: 800,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Flame size={16} />
-            <span>1. Scream Runner</span>
-          </button>
-
-          <button
-            onClick={() => setActiveMode('bomb')}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '10px',
-              border: 'none',
-              backgroundColor: activeMode === 'bomb' ? 'var(--accent-lilac)' : 'transparent',
-              fontWeight: 800,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Bomb size={16} />
-            <span>2. Ticking Voice Bomb</span>
-          </button>
-
-          <button
-            onClick={() => setActiveMode('target')}
-            style={{
-              padding: '10px 18px',
-              borderRadius: '10px',
-              border: 'none',
-              backgroundColor: activeMode === 'target' ? 'var(--accent-cyan)' : 'transparent',
-              fontWeight: 800,
-              fontSize: '0.9rem',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            <Target size={16} />
-            <span>3. Vocal Decibel Cannon</span>
-          </button>
-        </div>
       </div>
 
       {/* ─── LIVE VOICE SENSOR BAR (ALWAYS ACTIVE) ─── */}
@@ -1034,7 +967,7 @@ export const VoiceGame: React.FC<VoiceGameProps> = ({
           MODE 1 VIEW: SCREAM RUNNER
       ═══════════════════════════════════════════════════════════════════════ */}
       {activeMode === 'runner' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px' }}>
+        <div className="runner-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '24px' }}>
           {/* Main Game Screen Canvas */}
           <div style={{
             backgroundColor: '#ffffff',

@@ -1,13 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Header } from './components/Header';
 import { DevCockpit } from './components/DevCockpit';
 import { VoiceGame } from './components/VoiceGame';
-import { WorkflowAutomations } from './components/WorkflowAutomations';
-import { VoiceArchitectureCanvas } from './components/VoiceArchitectureCanvas';
+import { VoiceTriggers } from './components/VoiceTriggers';
+import { AudioSpectrum } from './components/AudioSpectrum';
 import { useAudioAnalyzer } from './hooks/useAudioAnalyzer';
 import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { ActiveTab } from './types';
-import { Sparkles, ExternalLink, Heart } from 'lucide-react';
 
 export function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>('game');
@@ -17,15 +16,19 @@ export function App() {
     volume,
     telemetry,
     frequencyDataRef,
+    timeDomainDataRef,
+    sampleRate,
     startListening,
     stopListening,
     injectSpeechInput,
     playTone
   } = useAudioAnalyzer();
 
-  const speech = useSpeechRecognition((cmd) => {
+  const handleSpeechCommand = useCallback((cmd: string) => {
     injectSpeechInput(cmd);
-  });
+  }, [injectSpeechInput]);
+
+  const speech = useSpeechRecognition(handleSpeechCommand);
 
   const handleToggleMic = () => {
     if (isActive) {
@@ -60,6 +63,8 @@ export function App() {
             onInjectSpeech={injectSpeechInput}
             liveTranscript={speech.transcript}
             interimTranscript={speech.interimTranscript}
+            lastSpokenCommand={speech.lastCommand}
+            onClearTranscript={speech.resetTranscript}
           />
         )}
 
@@ -74,18 +79,25 @@ export function App() {
         )}
 
         {activeTab === 'automations' && (
-          <WorkflowAutomations 
+          <VoiceTriggers
             playTone={playTone}
             lastSpokenCommand={speech.lastCommand}
+            liveTranscript={speech.transcript}
+            interimTranscript={speech.interimTranscript}
             isListening={isActive}
+            isSpeechSupported={speech.isSupported}
             onStartMic={handleToggleMic}
           />
         )}
 
         {activeTab === 'canvas' && (
-          <VoiceArchitectureCanvas 
-            playTone={playTone}
-            lastSpokenCommand={speech.lastCommand}
+          <AudioSpectrum
+            frequencyDataRef={frequencyDataRef}
+            timeDomainDataRef={timeDomainDataRef}
+            sampleRate={sampleRate}
+            volume={volume}
+            isListening={isActive}
+            onStartMic={handleToggleMic}
           />
         )}
       </main>
@@ -127,26 +139,11 @@ export function App() {
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
             <span className="genz-tag" style={{ backgroundColor: 'var(--accent-matcha)' }}>100% VOICE CODED</span>
-            <span>Crafted hands-free using</span>
-            <a
-              href="https://ref.wisprflow.ai/hhg"
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                color: 'var(--text-main)',
-                textDecoration: 'none',
-                fontWeight: 800,
-                borderBottom: '2px solid var(--border-black)',
-                paddingBottom: '1px'
-              }}
-            >
-              Wispr Flow (ref.wisprflow.ai/hhg) ↗
-            </a>
+            <span>Voice-driven tools, made for play.</span>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="genz-tag" style={{ backgroundColor: 'var(--accent-peach)' }}>GOA HACKER HOUSE 🌴</span>
-            <span style={{ color: 'var(--text-muted)', fontSize: '0.82rem' }}>Candidate Submission Task</span>
           </div>
         </div>
       </footer>

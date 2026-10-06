@@ -49,20 +49,80 @@ body {
   .full-screen-container {
     padding: 16px;
   }
+
+  .site-navigation {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .runner-layout {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
 }
 
-/* Gen Z Neo-Brutalist Tactile Cards */
+/* Gen Z Neo-Brutalist Tactile Cards — with glowing hover animations */
 .genz-card {
   background: var(--bg-card);
   border: 2.5px solid var(--border-black);
   border-radius: 16px;
   box-shadow: var(--shadow-brutal);
-  transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Glowing shimmer pseudo-element on hover */
+.genz-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: radial-gradient(
+    ellipse at 50% 0%,
+    rgba(168, 85, 247, 0.10) 0%,
+    transparent 70%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+  z-index: 0;
 }
 
 .genz-card:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: var(--shadow-brutal-hover);
+  transform: translate(-3px, -3px);
+  box-shadow: 6px 6px 0px var(--border-black),
+              0 0 22px rgba(168, 85, 247, 0.18),
+              0 0 6px rgba(168, 85, 247, 0.12);
+}
+
+.genz-card:hover::before {
+  opacity: 1;
+}
+
+/* Make sure card content stays above the pseudo-element */
+.genz-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Pulsing dot for live indicators */
+.pulse-dot {
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulseDot 1.2s ease-in-out infinite;
+}
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+
+/* Spin animation for loaders */
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
 }
 
 /* Neo-Brutalist Buttons */
@@ -117,6 +177,40 @@ body {
 .btn-brutal-white:active {
   transform: translate(2px, 2px);
   box-shadow: 1px 1px 0px var(--border-black);
+}
+
+.btn-brutal-green {
+  background-color: var(--accent-matcha);
+  color: var(--text-main);
+  border: 2px solid var(--border-black);
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.92rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 3px 3px 0px var(--border-black);
+  transition: all 0.12s ease;
+}
+
+.btn-brutal-green:hover {
+  transform: translate(-1.5px, -1.5px);
+  box-shadow: 5px 5px 0px var(--border-black);
+  background-color: #6ee7a0;
+}
+
+.btn-brutal-green:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px var(--border-black);
+}
+
+.btn-brutal-green:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 3px 3px 0px var(--border-black);
 }
 
 /* Playful Gen-Z Pill Tags */

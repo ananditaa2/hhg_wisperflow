@@ -1,5 +1,5 @@
 import React from 'react';
-import { Mic, MicOff, Activity, Zap, PlayCircle, Network, ExternalLink } from 'lucide-react';
+import { Mic, MicOff, Activity, Zap, PlayCircle, Network } from 'lucide-react';
 import { ActiveTab, TelemetryData } from '../types';
 
 interface HeaderProps {
@@ -22,8 +22,8 @@ export const Header: React.FC<HeaderProps> = ({
       {/* 1. Gen Z Marquee Top Banner */}
       <div className="marquee-container">
         <div className="marquee-content">
-          <span>⚡ WISPR FLOW × GOA HACKER HOUSE 2026 • FROM YAPS TO APPS • KEYBOARDS ARE OFFICIALLY OBSOLETE • 3.8x DEV VELOCITY • REGISTERED VIA REF.WISPRFLOW.AI/HHG • 100% VOICE CODING SPEEDRUN •&nbsp;</span>
-          <span>⚡ WISPR FLOW × GOA HACKER HOUSE 2026 • FROM YAPS TO APPS • KEYBOARDS ARE OFFICIALLY OBSOLETE • 3.8x DEV VELOCITY • REGISTERED VIA REF.WISPRFLOW.AI/HHG • 100% VOICE CODING SPEEDRUN •&nbsp;</span>
+          <span>⚡ WISPR FLOW × GOA HACKER HOUSE 2026 • FROM YAPS TO APPS • KEYBOARDS ARE OFFICIALLY OBSOLETE • 3.8x DEV VELOCITY • 100% VOICE CODING SPEEDRUN •&nbsp;</span>
+          <span>⚡ WISPR FLOW × GOA HACKER HOUSE 2026 • FROM YAPS TO APPS • KEYBOARDS ARE OFFICIALLY OBSOLETE • 3.8x DEV VELOCITY • 100% VOICE CODING SPEEDRUN •&nbsp;</span>
         </div>
       </div>
 
@@ -56,7 +56,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
 
           {/* 4 Pillars Navigation Pills */}
-          <nav style={{
+          <nav className="site-navigation" style={{
             display: 'flex',
             backgroundColor: '#ffffff',
             borderRadius: '12px',
@@ -146,23 +146,12 @@ export const Header: React.FC<HeaderProps> = ({
               }}
             >
               <Network size={15} />
-              <span>Audio Spectrum</span>
+              <span>Pitch &amp; Spectrum</span>
             </button>
           </nav>
 
           {/* Right Controls */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <a
-              href="https://ref.wisprflow.ai/hhg"
-              target="_blank"
-              rel="noreferrer"
-              className="genz-tag tag-cyan"
-              style={{ textDecoration: 'none' }}
-            >
-              <span>ref.wisprflow.ai/hhg</span>
-              <ExternalLink size={11} />
-            </a>
-
             <button
               onClick={onToggleMic}
               className="btn-brutal-lilac"
