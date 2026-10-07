@@ -27,6 +27,12 @@ interface NormalizationSample {
   language?: string;
 }
 
+interface VoiceHistoryEntry {
+  sample: NormalizationSample;
+  command: string;
+  summary: string;
+}
+
 // ─── STATIC DEMO SAMPLES (shown before user speaks) ─────────────────────────
 const DEMO_SAMPLES: NormalizationSample[] = [
   {
@@ -766,7 +772,8 @@ function normalizeVoiceInput(rawText: string): NormalizationSample | null {
   for (const rule of INTENT_RULES) {
     let score = 0;
     for (const kw of rule.keywords) {
-      if (lower.includes(kw)) score += kw.split(' ').length; // multi-word phrases score higher
+      const phrase = kw.split(/\s+/).map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s+');
+      if (new RegExp(`\\b${phrase}\\b`, 'i').test(lower)) score += kw.split(' ').length; // multi-word phrases score higher
     }
     if (score > 0) {
       const weighted = score * rule.priority;
@@ -778,29 +785,81 @@ function normalizeVoiceInput(rawText: string): NormalizationSample | null {
   }
 
   if (!bestRule) {
-    // Fallback: generic utility function
     return {
       raw: rawText,
-      normalized: `Build a TypeScript utility module for: "${capitalize(rawText.trim().slice(0, 120))}".`,
-      language: 'TypeScript',
-      code: `// Auto-generated utility from voice input:
-// "${rawText.trim().slice(0, 80)}..."
-
-export interface VoiceGeneratedConfig {
-  input: string;
-  options?: Record<string, unknown>;
-}
-
-export async function processVoiceIntent(config: VoiceGeneratedConfig): Promise<string> {
-  const { input, options = {} } = config;
-  // TODO: Implement logic for "${rawText.trim().slice(0, 60)}"
-  console.log('[VoiceIntent] Processing:', input, options);
-  return \`Processed: \${input}\`;
+      normalized: `No starter template matched "${capitalize(rawText.trim().slice(0, 120))}". Try a hero, button, card, form, modal, navbar, hook, or utility request.`,
+      language: 'No template matched',
+      code: `export function explainUnsupportedRequest(): string {
+  return 'No starter template matched. Try a hero, button, card, form, modal, navbar, hook, or utility request.';
 }`,
     };
   }
 
   return bestRule.normalize(rawText);
+}
+
+const HERO_BACKGROUND_PRESETS: Record<string, string> = {
+  blue: 'linear-gradient(135deg, #071952, #1d4ed8, #0f172a)',
+  green: 'linear-gradient(135deg, #052e16, #15803d, #064e3b)',
+  pink: 'linear-gradient(135deg, #500724, #be185d, #4a044e)',
+  purple: 'linear-gradient(135deg, #1e1b4b, #7c3aed, #312e81)',
+  sunset: 'linear-gradient(135deg, #431407, #c2410c, #7f1d1d)',
+};
+
+function escapeJsxText(value: string) {
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function cleanVoiceValue(value: string) {
+  return value.trim().replace(/^(["'])(.*)\1$/, '$2').replace(/\.$/, '').trim();
+}
+
+function applyHeroVoiceRefinement(sample: NormalizationSample, command: string): VoiceHistoryEntry | null {
+  if (!/export\s+const\s+HeroSection\b/.test(sample.code)) return null;
+
+  const headlineMatch = command.match(/^(?:change|set|update|make)\s+(?:the\s+)?(?:headline|heading|title)\s+(?:to|say|read)\s+(.+)$/i);
+  if (headlineMatch) {
+    const value = cleanVoiceValue(headlineMatch[1]);
+    let updated = false;
+    const code = sample.code.replace(/(<h1\b[^>]*>)[\s\S]*?(<\/h1>)/, (_match, open, close) => {
+      updated = true;
+      return `${open}${escapeJsxText(value)}${close}`;
+    });
+    if (!updated || !value) return null;
+    return { sample: { ...sample, code }, command, summary: `Headline changed to "${value}".` };
+  }
+
+  const buttonMatch = command.match(/^(?:change|set|update|rename)\s+(?:the\s+)?(?:(?:primary\s+)?button|cta)(?:\s+(?:text|label))?\s+(?:to|say|read)\s+(.+)$/i);
+  if (buttonMatch) {
+    const value = cleanVoiceValue(buttonMatch[1]);
+    let updated = false;
+    const code = sample.code.replace(/(<a\b[^>]*>)[\s\S]*?(<\/a>)/, (_match, open, close) => {
+      updated = true;
+      return `${open}${escapeJsxText(value)}${close}`;
+    });
+    if (!updated || !value) return null;
+    return { sample: { ...sample, code }, command, summary: `Primary CTA changed to "${value}".` };
+  }
+
+  const backgroundMatch = command.match(/^(?:change|set|make|turn)\s+(?:the\s+)?background\s+(?:to\s+)?(?:a\s+)?(blue|green|pink|purple|sunset)\b/i);
+  if (backgroundMatch) {
+    const theme = backgroundMatch[1].toLowerCase();
+    let updated = false;
+    const code = sample.code.replace(/(background:\s*)'linear-gradient\([^']*\)'/, (_match, property) => {
+      updated = true;
+      return `${property}'${HERO_BACKGROUND_PRESETS[theme]}'`;
+    });
+    if (!updated) return null;
+    return { sample: { ...sample, code }, command, summary: `Hero background changed to ${theme}.` };
+  }
+
+  return null;
+}
+
+function looksLikeVoiceRefinement(command: string) {
+  const text = command.trim();
+  return /^(?:change|set|update|rename|replace)\b/i.test(text)
+    || /^make\s+(?:the\s+)?(?:headline|heading|title|background|button|cta)\b/i.test(text);
 }
 
 // ─── COMPONENT ───────────────────────────────────────────────────────────────
@@ -824,6 +883,8 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
   const [liveOutput, setLiveOutput] = useState<NormalizationSample | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processedFor, setProcessedFor] = useState('');
+  const [voiceHistory, setVoiceHistory] = useState<VoiceHistoryEntry[]>([]);
+  const [voiceFeedback, setVoiceFeedback] = useState('');
 
   // ── Audio Bars Visualizer ──────────────────────────────────────────────────
   useEffect(() => {
@@ -868,14 +929,35 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
 
     setIsProcessing(true);
     const timer = setTimeout(() => {
+      const currentOutput = liveOutput;
+      if (currentOutput && looksLikeVoiceRefinement(text)) {
+        const refinement = applyHeroVoiceRefinement(currentOutput, text);
+        if (refinement) {
+          setVoiceHistory(history => [...history, { sample: currentOutput, command: text, summary: refinement.summary }].slice(-8));
+          setLiveOutput(refinement.sample);
+          setVoiceFeedback(refinement.summary);
+          setOutputTab('run');
+        } else {
+          setVoiceFeedback(/export\s+const\s+HeroSection\b/.test(currentOutput.code)
+            ? 'I could not apply that edit. Try changing the headline, background to blue/green/pink/purple/sunset, or CTA label.'
+            : 'Voice refinements currently work on the Hero starter. Speak a new supported request to switch starters.');
+        }
+        setProcessedFor(text);
+        setIsProcessing(false);
+        return;
+      }
+
       const result = normalizeVoiceInput(text);
       setLiveOutput(result);
+      setVoiceHistory([]);
+      setVoiceFeedback('');
+      setOutputTab('run');
       setProcessedFor(text);
       setIsProcessing(false);
     }, 400);
 
     return () => clearTimeout(timer);
-  }, [lastSpokenCommand, processedFor]);
+  }, [lastSpokenCommand, processedFor, liveOutput]);
 
   const handleCopyCode = (code: string) => {
     navigator.clipboard.writeText(code).catch(() => {});
@@ -886,12 +968,24 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
   const handleClearAll = () => {
     setLiveOutput(null);
     setProcessedFor('');
+    setVoiceHistory([]);
+    setVoiceFeedback('');
     if (onClearTranscript) onClearTranscript();
   };
 
   const handleSelectDemo = (sample: NormalizationSample, idx: number) => {
     setActiveDemoIdx(idx);
     setLiveOutput(null); // Clear live output when demo is selected
+    setVoiceHistory([]);
+    setVoiceFeedback('');
+  };
+
+  const handleUndoVoiceEdit = () => {
+    const previous = voiceHistory[voiceHistory.length - 1];
+    if (!previous) return;
+    setLiveOutput(previous.sample);
+    setVoiceHistory(history => history.slice(0, -1));
+    setVoiceFeedback(`Undid: ${previous.summary}`);
   };
 
 
@@ -900,6 +994,7 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
   // What to show in the normalizer panel
   const displaySample: NormalizationSample = liveOutput ?? DEMO_SAMPLES[activeDemoIdx];
   const isLive = liveOutput !== null;
+  const canRefineHero = /export\s+const\s+HeroSection\b/.test(displaySample.code);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '32px', width: '100%' }}>
@@ -913,12 +1008,12 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
         </div>
 
         <h1 className="serif-headline" style={{ fontSize: 'clamp(3rem, 6.5vw, 5.2rem)', lineHeight: '1.04', marginBottom: '16px' }}>
-          Don&apos;t type,<br />
-          <span className="serif-italic" style={{ color: '#093c31' }}>just code.</span>
+          Say it.<br />
+          <span className="serif-italic" style={{ color: '#093c31' }}>Run it. Refine it.</span>
         </h1>
 
         <p style={{ fontSize: '1.25rem', color: 'var(--text-muted)', maxWidth: '780px', margin: '0 auto 24px', lineHeight: '1.6' }}>
-          Describe what you want to build. Watch your speech become a transcript, a clearer engineering brief, and generated code. Switch between <strong>Code</strong> and <strong>Run</strong> to inspect the source or test its output.
+          Speak a supported request to choose a starter component, run it, then refine a hero headline, theme, or CTA by voice. YapLab shows the transcript, code, and live preview together.
         </p>
 
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '14px', flexWrap: 'wrap' }}>
@@ -928,7 +1023,7 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
             style={{ padding: '14px 28px', fontSize: '1.05rem', backgroundColor: isListening ? 'var(--accent-matcha)' : 'var(--accent-lilac)' }}
           >
             <Mic size={20} />
-            <span>{isListening ? '🎙️ Microphone Active — Speak Now' : 'Launch Voice Telemetry'}</span>
+          <span>{isListening ? '🎙️ Microphone Active — Speak Now' : 'Start voice session'}</span>
           </button>
         </div>
       </section>
@@ -980,8 +1075,8 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
               ) : (
                 <span style={{ color: '#94a3b8' }}>
                   {isListening
-                    ? '🎙️ Speak freely — e.g. "create a glowing card with hover animations" or "build a login form with validation"...'
-                    : 'Click "Launch Voice Telemetry" above to activate microphone, then speak your coding intent.'}
+                    ? '🎙️ Try a supported request, such as "create a hero landing page" or "build a login form with validation"...'
+                    : 'Click "Start voice session" above to activate the microphone, then speak a supported request.'}
                 </span>
               )}
             </div>
@@ -990,7 +1085,7 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
             {isProcessing && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px', color: '#7c3aed' }}>
                 <Loader2 size={16} style={{ animation: 'spin 1s linear infinite' }} />
-                <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Normalizing intent &amp; synthesizing code...</span>
+                <span style={{ fontSize: '0.85rem', fontWeight: 700 }}>Matching your request to a supported starter...</span>
               </div>
             )}
 
@@ -998,7 +1093,7 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
             {liveOutput && !isProcessing && (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '12px' }}>
                 <span className="genz-tag" style={{ backgroundColor: '#a855f7', color: '#fff', fontSize: '0.72rem' }}>
-                  ✨ LIVE CODE GENERATED ↓
+                  ✨ STARTER CODE READY ↓
                 </span>
                 <span style={{ fontSize: '0.82rem', color: '#6b7280', fontWeight: 600 }}>
                   Scroll down to see your code
@@ -1055,7 +1150,7 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
         </div>
       </div>
 
-      {/* ── 3. Wispr Magic Normalizer ─────────────────────────────────────────── */}
+      {/* ── 3. Voice Studio ───────────────────────────────────────────────────── */}
       <div className="genz-card" style={{ padding: '32px', width: '100%' }}>
 
         {/* Header row */}
@@ -1079,8 +1174,8 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
 
         <p style={{ color: 'var(--text-muted)', fontSize: '1rem', marginBottom: '20px' }}>
           {isLive
-            ? '🎙️ Code below was generated live from your spoken input. Speak something else to regenerate instantly.'
-            : 'Speak an idea to generate its intent and code. Use Code to inspect the source, or Run to preview components, hooks, and function results.'}
+            ? '🎙️ Your request selected a starter template. Refine a hero by voice, or speak another supported request to switch starters.'
+            : 'Speak a supported idea to select a starter template. Use Code to inspect it or Run to preview the result.'}
         </p>
 
         {/* Demo sample tabs (shown when no live output) */}
@@ -1117,6 +1212,31 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
             <button onClick={handleClearAll} className="btn-brutal-white" style={{ padding: '8px 14px', fontSize: '0.82rem' }}>
               <RotateCcw size={13} /> Clear &amp; Reset
             </button>
+            {voiceHistory.length > 0 && (
+              <button onClick={handleUndoVoiceEdit} className="btn-brutal-white" style={{ padding: '8px 14px', fontSize: '0.82rem' }}>
+                <RotateCcw size={13} /> Undo last voice edit
+              </button>
+            )}
+          </div>
+        )}
+
+        {isLive && (canRefineHero || voiceFeedback) && (
+          <div role="region" aria-label="Voice refinement history" style={{ marginBottom: '20px', padding: '14px 18px', background: '#f5f0ff', border: '1.5px solid #c4b5fd', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', marginBottom: '8px' }}>
+              <strong style={{ color: '#5b21b6', fontSize: '0.82rem', letterSpacing: '0.04em' }}>VOICE PATCHES</strong>
+              <span style={{ color: '#6b7280', fontSize: '0.78rem' }}>{canRefineHero ? 'Curated edits for the Hero starter' : 'Switch to the Hero starter to use voice patches'}</span>
+            </div>
+            {canRefineHero && <p style={{ margin: '0 0 8px', color: '#27203a', fontSize: '0.86rem' }}>
+              Try: “change the headline to Ship ideas out loud”, “make the background blue”, or “change the button label to Start building”.
+            </p>}
+            {voiceFeedback && <p role="status" style={{ margin: '0 0 8px', color: '#5b21b6', fontWeight: 700, fontSize: '0.84rem' }}>{voiceFeedback}</p>}
+            {voiceHistory.length > 0 && (
+              <ol style={{ margin: 0, paddingLeft: '20px', color: '#3f3f46', fontSize: '0.8rem' }}>
+                {voiceHistory.slice(-3).map((edit, index) => (
+                  <li key={`${edit.command}-${index}`}><strong>{edit.summary}</strong> <span>Heard: “{edit.command}”</span></li>
+                ))}
+              </ol>
+            )}
           </div>
         )}
 
@@ -1161,7 +1281,7 @@ export const DevCockpit: React.FC<DevCockpitProps> = ({
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <Sparkles size={16} color="#093c31" />
                   <span style={{ fontSize: '0.8rem', fontWeight: 800, color: '#093c31', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                    Wispr Normalized Engineering Intent
+                    YapLab Intent Summary
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>

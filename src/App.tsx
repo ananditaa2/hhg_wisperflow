@@ -9,7 +9,7 @@ import { useSpeechRecognition } from './hooks/useSpeechRecognition';
 import { ActiveTab } from './types';
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<ActiveTab>('game');
+  const [activeTab, setActiveTab] = useState<ActiveTab>('cockpit');
   const micTogglePendingRef = useRef(false);
 
   const {
